@@ -21,10 +21,8 @@ fi
 for folder in "${!folders[@]}"; do
     if [ -d "$folder" ]; then
         cd "$folder" ||exit
-        if [ ! -d "data" ]; then
-            echo "Action to be taken in: $(pwd)"
-            echo "${folders[$folder]}"
-        fi
+        echo "DOWNLOAD DATASET in: $(pwd)"
+        eval "${folders[$folder]}"
         cd .. ||exit
     else
         echo "leaf/data directory '$(folder)' does not exist."
