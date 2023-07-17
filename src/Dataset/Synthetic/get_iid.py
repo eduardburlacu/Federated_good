@@ -2,7 +2,7 @@ import json, math, os, sys
 import numpy as np
 import random
 from tqdm import trange
-
+from src import PATH_src
 
 NUM_USER = 30
 
@@ -54,8 +54,8 @@ def generate_synthetic(alpha, beta, iid):
 
 
 def main():
-    train_path = "data/train/mytrain.json"
-    test_path = "data/test/mytest.json"
+    train_path = os.path.join(PATH_src['Dataset'],'Synthetic','data','train','train_iid.json')
+    test_path = os.path.join(PATH_src['Dataset'],'Synthetic','data','test','test_iid.json')
 
     X, y = generate_synthetic(alpha=0, beta=0, iid=1)
 
@@ -88,4 +88,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

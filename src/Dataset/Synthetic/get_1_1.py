@@ -6,7 +6,7 @@ import sys
 import random
 from tqdm import trange
 import math
-
+from src import PATH_src
 
 NUM_USER = 30
 
@@ -71,8 +71,8 @@ def generate_synthetic(alpha, beta, iid):
 def main():
 
 
-    train_path = "data/train/mytrain.json"
-    test_path = "data/test/mytest.json"
+    train_path = os.path.join(PATH_src['Dataset'],'Synthetic','data','train','train_1_1.json')
+    test_path = os.path.join(PATH_src['Dataset'],'Synthetic','data','test','test_1_1.json')
 
     X, y = generate_synthetic(alpha=1, beta=1, iid=0)     # synthetic (1,1)
 
