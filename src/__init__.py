@@ -18,4 +18,3 @@ sims  = os.listdir(path_sims)
 PATH_sim = {
     os.path.splitext(f)[0]: os.path.join(path_sims, f) for f in sims
 }
-
