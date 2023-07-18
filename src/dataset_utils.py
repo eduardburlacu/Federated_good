@@ -9,13 +9,11 @@ from torchvision.datasets import VisionDataset
 from typing import Callable, Optional, Tuple, Any
 from common import create_lda_partitions
 
-
 def get_dataset(path_to_data: Path, cid: str, partition: str):
     # generate path to cid's data
     path_to_data = path_to_data / cid / (partition + ".pt")
 
     return TorchVision_FL(path_to_data, transform=cifar10Transformation())
-
 
 def get_dataloader(
     path_to_data: str, cid: str, is_train: bool, batch_size: int, workers: int

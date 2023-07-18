@@ -16,9 +16,7 @@
 
 # pylint: disable=invalid-name
 
-
 from typing import List, Optional, Tuple, Union
-
 import numpy as np
 from numpy.random import BitGenerator, Generator, SeedSequence
 
@@ -27,7 +25,6 @@ XYList = List[XY]
 PartitionedDataset = Tuple[XYList, XYList]
 
 np.random.seed(2020)
-
 
 def float_to_int(i: float) -> int:
     """Return float as int but raise if decimal is dropped."""
@@ -383,8 +380,7 @@ def create_lda_partitions(
     accept_imbalanced: bool = False,
     seed: Optional[Union[int, SeedSequence, BitGenerator, Generator]] = None,
 ) -> Tuple[XYList, np.ndarray]:
-    """Create imbalanced non-iid partitions using Latent Dirichlet Allocation
-    (LDA) without resampling.
+    """Create imbalanced non-iid partitions using Latent Dirichlet Allocation (LDA) without resampling.
 
     Args:
         dataset (XY): Dataset containing samples X and labels Y.

@@ -1,11 +1,26 @@
+import numpy as np
+import flwr as fl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from collections import OrderedDict
+from typing import List
+import os
+from src import PATH_src
+import importlib.util
 
+def importer(filename:str):
+    module_path = os.path.join(PATH_src['Models'], filename+'.py') # Specify path to the file you want to import from
+    spec = importlib.util.spec_from_file_location(filename, module_path)  # Load the module from the specified path
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
-# Model (simple CNN adapted from 'PyTorch: A 60 Minute Blitz')
-# borrowed from Pytorch quickstart example
 class Net(nn.Module):
+    '''
+    Model (simple CNN adapted from 'PyTorch: A 60 Minute Blitz')
+    borrowed from Pytorch quickstart example
+    '''
     def __init__(self) -> None:
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(3, 6, 5)
@@ -24,7 +39,6 @@ class Net(nn.Module):
         x = self.fc3(x)
         return x
 
-
 # borrowed from Pytorch quickstart example
 def train(net, trainloader, epochs, device: str):
     """Train the network on the training set."""
@@ -38,7 +52,6 @@ def train(net, trainloader, epochs, device: str):
             loss = criterion(net(images), labels)
             loss.backward()
             optimizer.step()
-
 
 # borrowed from Pytorch quickstart example
 def test(net, testloader, device: str):
@@ -55,3 +68,13 @@ def test(net, testloader, device: str):
             correct += (predicted == labels).sum().item()
     accuracy = correct / len(testloader.dataset)
     return loss, accuracy
+
+def get_params(model: torch.nn.ModuleList) -> List[np.ndarray]:
+    """Get model weights as a list of NumPy ndarrays."""
+    return [val.cpu().numpy() for _, val in model.state_dict().items()]
+
+def set_params(model: torch.nn.ModuleList, params: List[np.ndarray]):
+    """Set model weights from a list of NumPy ndarrays."""
+    params_dict = zip(model.state_dict().keys(), params)
+    state_dict = OrderedDict({k: torch.from_numpy(np.copy(v)) for k, v in params_dict})
+    model.load_state_dict(state_dict, strict=True)

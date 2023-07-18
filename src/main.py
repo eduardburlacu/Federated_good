@@ -8,17 +8,16 @@ import numpy as np
 from collections import OrderedDict
 from pathlib import Path
 from typing import Dict, Callable, Optional, Tuple, List
+#----------------------------Internal Imports-----------------------------
+from utils import Net, train, test, get_params, set_params, importer
+from src.script.parse_config import get_variables
 from dataset_utils import get_cifar_10, do_fl_partitioning, get_dataloader
-from utils import Net, train, test
 
-
+#-------------------------------Setup parser------------------------------
 parser = argparse.ArgumentParser(description="Flower Simulation with PyTorch")
+parser.add_argument('--config', type=str, default='mock')
+parser.add_argument('--size', type=str, default='small')
 
-parser.add_argument("--num_client_cpus", type=int, default=1)
-parser.add_argument("--num_rounds", type=int, default=5)
-
-
-# Flower client, adapted from Pytorch quickstart example
 class FlowerClient(fl.client.NumPyClient):
     def __init__(self, cid: str, fed_dir_data: str):
         self.cid = cid
@@ -74,7 +73,6 @@ class FlowerClient(fl.client.NumPyClient):
         # Return statistics
         return float(loss), len(valloader.dataset), {"accuracy": float(accuracy)}
 
-
 def fit_config(server_round: int) -> Dict[str, Scalar]:
     """Return a configuration with static batch size and (local) epochs."""
     config = {
@@ -82,19 +80,6 @@ def fit_config(server_round: int) -> Dict[str, Scalar]:
         "batch_size": 64,
     }
     return config
-
-
-def get_params(model: torch.nn.ModuleList) -> List[np.ndarray]:
-    """Get model weights as a list of NumPy ndarrays."""
-    return [val.cpu().numpy() for _, val in model.state_dict().items()]
-
-
-def set_params(model: torch.nn.ModuleList, params: List[np.ndarray]):
-    """Set model weights from a list of NumPy ndarrays."""
-    params_dict = zip(model.state_dict().keys(), params)
-    state_dict = OrderedDict({k: torch.from_numpy(np.copy(v)) for k, v in params_dict})
-    model.load_state_dict(state_dict, strict=True)
-
 
 def get_evaluate_fn(
     testset: torchvision.datasets.CIFAR10,
@@ -121,7 +106,7 @@ def get_evaluate_fn(
 
     return evaluate
 
-
+# ------------------------------------------------------------------------------------
 # Start simulation (a _default server_ will be created)
 # This example does:
 # 1. Downloads CIFAR-10
@@ -133,33 +118,30 @@ def get_evaluate_fn(
 #    client. This is useful to get a sense on how well the global model can generalise
 #    to each client's data.
 if __name__ == "__main__":
-    # parse input arguments
-    args = parser.parse_args()
 
-    pool_size = 100  # number of dataset partions (= number of total clients)
-    client_resources = {
-        "num_cpus": args.num_client_cpus
-    }  # each client will get allocated 1 CPUs
+    args = parser.parse_args() # parse input arguments
+    CONFIG = get_variables(args.config) # Get toml config
+    client_resources = { "num_cpus": CONFIG['CPUS'] }  # each client will get allocated this many CPUs in simulation.
+    models = importer(CONFIG['STRATEGY'])
+    print(models.CNN_MNIST(cid='1'))
 
-    # Download CIFAR-10 dataset
-    train_path, testset = get_cifar_10()
 
-    # partition dataset (use a large `alpha` to make it IID;
-    # a small value (e.g. 1) will make it non-IID)
-    # This will create a new directory called "federated": in the directory where
-    # CIFAR-10 lives. Inside it, there will be N=pool_size sub-directories each with
-    # its own train/set split.
-    fed_dir = do_fl_partitioning(
-        train_path, pool_size=pool_size, alpha=1000, num_classes=10, val_ratio=0.1
-    )
 
-    # configure the strategy
+    '''
+    train_path, testset = get_cifar_10() #fetch data
+
+    fed_dir = do_fl_partitioning(                                                # use a large `alpha` to make it IID;
+        train_path, pool_size=CONFIG['NUM_CLIENTS'], alpha=CONFIG['ALFA'],       # a small value (e.g. 1) will make it non-IID
+        num_classes=CONFIG['DATASET'].num_classes, val_ratio=CONFIG['VAL_SPLIT'] # This will create a new directory called "federated": in the directory where
+    )                                                                            # CIFAR-10 lives. Inside it, there will be N=NUM_CLIENTS sub-directories
+                                                                                 # each with its own train/set split.
+    # ------------------------------------Simulation------------------------------------
     strategy = fl.server.strategy.FedAvg(
-        fraction_fit=0.1,
-        fraction_evaluate=0.1,
-        min_fit_clients=10,
-        min_evaluate_clients=10,
-        min_available_clients=pool_size,  # All clients should be available
+        fraction_fit=CONFIG['FRAC_FIT'],
+        fraction_evaluate=CONFIG['FRAC_EVALUATE'],
+        min_fit_clients=CONFIG['MIN_FIT_CLIENTS'],
+        min_evaluate_clients=CONFIG['MIN_EVALUABLE_CLIENTS'],
+        min_available_clients=CONFIG['MIN_AVAILABLE_CLIENTS'], # All clients should be available
         on_fit_config_fn=fit_config,
         evaluate_fn=get_evaluate_fn(testset),  # centralised evaluation of global model
     )
@@ -168,15 +150,14 @@ if __name__ == "__main__":
         # create a single client instance
         return FlowerClient(cid, fed_dir)
 
-    # (optional) specify Ray config
-    ray_init_args = {"include_dashboard": False}
+    ray_init_args = {"include_dashboard": False} # (optional) specify Ray config
 
-    # start simulation
     fl.simulation.start_simulation(
         client_fn=client_fn,
-        num_clients=pool_size,
+        num_clients=CONFIG['NUM_CLIENTS'],
         client_resources=client_resources,
-        config=fl.server.ServerConfig(num_rounds=args.num_rounds),
+        config=fl.server.ServerConfig(num_rounds=CONFIG['NUM_ROUNDS']),
         strategy=strategy,
         ray_init_args=ray_init_args,
     )
+    '''
