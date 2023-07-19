@@ -81,17 +81,8 @@ class FlowerClient(fl.client.NumPyClient):
         # Return statistics
         return float(loss), len(valloader.dataset), {"accuracy": float(accuracy)}
 
-def fit_config(server_round: int) -> Dict[str, Scalar]:
-    """Return a configuration with static batch size and (local) epochs."""
-    config = {
-        "epochs": 5,  # number of local epochs
-        "batch_size": 64,
-    }
-    return config
 
-def get_evaluate_fn(
-    testset: torchvision.datasets.CIFAR10,
-) -> Callable[[fl.common.NDArrays], Optional[Tuple[float, float]]]:
+def get_evaluate_fn( testset: torchvision.datasets.CIFAR10, ) -> Callable[[fl.common.NDArrays], Optional[Tuple[float, float]]]:
     """Return an evaluation function for centralized evaluation."""
 
     def evaluate(
@@ -114,17 +105,13 @@ def get_evaluate_fn(
 
     return evaluate
 
-# ------------------------------------------------------------------------------------
-# Start simulation (a _default server_ will be created)
-# This example does:
+# -------------------------------Example----------------------------------------------
 # 1. Downloads CIFAR-10
 # 2. Partitions the dataset into N splits, where N is the total number of
 #    clients. We refere to this as `pool_size`. The partition can be IID or non-IID
 # 3. Starts a simulation where a % of clients are sample each round.
 # 4. After the M rounds end, the global model is evaluated on the entire testset.
-#    Also, the global model is evaluated on the valset partition residing in each
-#    client. This is useful to get a sense on how well the global model can generalise
-#    to each client's data.
+#    Also, the global model is evaluated on the valset partition residing in each client.
 if __name__ == "__main__":
 
     args = parser.parse_args()                         # parse input arguments
@@ -138,6 +125,14 @@ if __name__ == "__main__":
     )                                                                            # CIFAR-10 lives. Inside it, there will be N=NUM_CLIENTS sub-directories
                                                                                  # each with its own train/set split.
     # ------------------------------------Simulation------------------------------------
+    def fit_config(server_round: int) -> Dict[str, Scalar]:
+        """Return a configuration with static batch size and (local) epochs."""
+        config = {
+            "epochs": CONFIG['EPOCHS'],  # number of local epochs
+            "batch_size": ['BATCH_SIZE'],
+        }
+        return config
+
     strategy = fl.server.strategy.FedAvg(
         fraction_fit=CONFIG['FRAC_FIT'],
         fraction_evaluate=CONFIG['FRAC_EVALUATE'],

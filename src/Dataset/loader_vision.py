@@ -1,6 +1,6 @@
 import os
 from src import PATH_src
-from src.script.get_variables import get_variables
+from src.script.parse_config import get_variables
 import torch
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, random_split, Dataset
