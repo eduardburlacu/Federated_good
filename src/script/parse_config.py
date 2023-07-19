@@ -1,8 +1,7 @@
 import toml
-import os
 import torchvision
+import os
 from src import PATH, PATH_sim
-
 class DatasetNode():
   def __init__(self, dataset:str):
     self.name = dataset
@@ -60,3 +59,7 @@ def get_variables(file:str = 'mock'):
     config_var['DATASET'] = DatasetNode(config_var['DATASET'])
 
     return config_var
+
+def prepare_data(datanode:DatasetNode):
+    pass
+

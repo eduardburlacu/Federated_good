@@ -40,7 +40,7 @@ class Net(nn.Module):
         return x
 
 # borrowed from Pytorch quickstart example
-def train(net, trainloader, epochs, device: str):
+def train(net, trainloader, epochs, device):
     """Train the network on the training set."""
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(net.parameters(), lr=0.01, momentum=0.9)
@@ -54,7 +54,7 @@ def train(net, trainloader, epochs, device: str):
             optimizer.step()
 
 # borrowed from Pytorch quickstart example
-def test(net, testloader, device: str):
+def test(net, testloader, device):
     """Validate the network on the entire test set."""
     criterion = torch.nn.CrossEntropyLoss()
     correct, loss = 0, 0.0
@@ -69,11 +69,11 @@ def test(net, testloader, device: str):
     accuracy = correct / len(testloader.dataset)
     return loss, accuracy
 
-def get_params(model: torch.nn.ModuleList) -> List[np.ndarray]:
+def get_params(model) -> List[np.ndarray]:
     """Get model weights as a list of NumPy ndarrays."""
     return [val.cpu().numpy() for _, val in model.state_dict().items()]
 
-def set_params(model: torch.nn.ModuleList, params: List[np.ndarray]):
+def set_params(model, params: List[np.ndarray]):
     """Set model weights from a list of NumPy ndarrays."""
     params_dict = zip(model.state_dict().keys(), params)
     state_dict = OrderedDict({k: torch.from_numpy(np.copy(v)) for k, v in params_dict})

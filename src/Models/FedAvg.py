@@ -1,8 +1,12 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+import os
+import sys
+src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
+sys.path.insert(0, src_path)
 from src.Models.ClassModel import Model
-
+from src.script.parse_config import DatasetNode
 class CNN_MNIST(Model):
     def __init__(self, cid: str, *args, **kwargs):
         super(CNN_MNIST, self).__init__(cid, *args, **kwargs)
@@ -113,3 +117,28 @@ class LSTM_Large(Model):
         x = self.fc1(h)
         x = F.softmax(x,dim=1)
         return x
+def load_models_datanodes():
+    mapper = {
+        (CNN_MNIST, DatasetNode('MNIST')),
+        (MLP_MNIST, DatasetNode('MNIST')),
+        (CNN_CIFAR, DatasetNode('CIFAR10')),
+        (LSTM_Shakespeare, DatasetNode('Shakespeare')),
+    }
+    return mapper
+
+def load_datanodes():
+    mapper = {
+        DatasetNode('MNIST'),
+        DatasetNode('CIFAR10'),
+        DatasetNode('Shakespeare')
+    }
+    return mapper
+
+def load_models():
+    mapper = {
+        CNN_MNIST,
+        MLP_MNIST,
+        CNN_CIFAR,
+        LSTM_Shakespeare,
+    }
+    return mapper
