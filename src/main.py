@@ -127,17 +127,11 @@ def get_evaluate_fn(
 #    to each client's data.
 if __name__ == "__main__":
 
-    args = parser.parse_args() # parse input arguments
-    CONFIG = get_variables(args.config) # Get toml config
+    args = parser.parse_args()                         # parse input arguments
+    CONFIG = get_variables(args.config)                # Get toml config
     client_resources = { "num_cpus": CONFIG['CPUS'] }  # each client will get allocated this many CPUs in simulation.
-    models = importer(CONFIG['STRATEGY'])
-    print(models.CNN_MNIST(cid='1'))
-
-
-
-    '''
-    train_path, testset = get_cifar_10() #fetch data
-
+    models = importer(CONFIG['STRATEGY'])              #src/Models/Relevant file aliased as models
+    train_path, testset = get_cifar_10()
     fed_dir = do_fl_partitioning(                                                # use a large `alpha` to make it IID;
         train_path, pool_size=CONFIG['NUM_CLIENTS'], alpha=CONFIG['ALFA'],       # a small value (e.g. 1) will make it non-IID
         num_classes=CONFIG['DATASET'].num_classes, val_ratio=CONFIG['VAL_SPLIT'] # This will create a new directory called "federated": in the directory where
@@ -168,4 +162,3 @@ if __name__ == "__main__":
         strategy=strategy,
         ray_init_args=ray_init_args,
     )
-    '''
