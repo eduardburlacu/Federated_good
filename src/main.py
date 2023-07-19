@@ -1,3 +1,4 @@
+#----------------------------External Imports----------------------------
 import argparse
 import flwr as fl
 from flwr.common.typing import Scalar
@@ -8,10 +9,17 @@ import numpy as np
 from collections import OrderedDict
 from pathlib import Path
 from typing import Dict, Callable, Optional, Tuple, List
+
+#----Insert main project directory so that we can resolve the src imports-------
+import os
+import sys
+src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
+sys.path.insert(0, src_path)
+
 #----------------------------Internal Imports-----------------------------
-from utils import Net, train, test, get_params, set_params, importer
+from src.utils import Net, train, test, get_params, set_params, importer
 from src.script.parse_config import get_variables
-from dataset_utils import get_cifar_10, do_fl_partitioning, get_dataloader
+from src.dataset_utils import get_cifar_10, do_fl_partitioning, get_dataloader
 
 #-------------------------------Setup parser------------------------------
 parser = argparse.ArgumentParser(description="Flower Simulation with PyTorch")

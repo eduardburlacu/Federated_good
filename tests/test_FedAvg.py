@@ -57,5 +57,4 @@ class LSTM_Large(Model):
         x = self.fc1(h)
         x = F.softmax(x,dim=1)
         return x
-
 '''
