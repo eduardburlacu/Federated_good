@@ -117,28 +117,28 @@ class LSTM_Large(Model):
         x = self.fc1(h)
         x = F.softmax(x,dim=1)
         return x
-def load_models_datanodes():
-    mapper = {
-        (CNN_MNIST, DatasetNode('MNIST')),
-        (MLP_MNIST, DatasetNode('MNIST')),
-        (CNN_CIFAR, DatasetNode('CIFAR10')),
+def load_models_datanodes(model:str =None , dataset:str = None, iid:bool = True):
+    mapper = [
+        (CNN_MNIST, DatasetNode('MNIST',iid)),
+        (MLP_MNIST, DatasetNode('MNIST', iid)),
+        (CNN_CIFAR, DatasetNode('CIFAR10', iid)),
         (LSTM_Shakespeare, DatasetNode('Shakespeare')),
-    }
-    return mapper
+    ]
+    if   model == 'CNN' and dataset=='MNIST': return mapper[0]
+    elif model == 'MLP' and dataset=='MNIST': return mapper[1]
+    elif model == 'CNN' and dataset=='CIFAR10': return mapper[2]
+    elif model == 'LSTM' and dataset=='Shakespeare': return mapper[4]
+    elif model is None and dataset is None: return mapper
+    else: raise AttributeError
 
-def load_datanodes():
-    mapper = {
+def load_datanodes(dataset:str = None):
+    mapper = [
         DatasetNode('MNIST'),
         DatasetNode('CIFAR10'),
-        DatasetNode('Shakespeare')
-    }
-    return mapper
-
-def load_models():
-    mapper = {
-        CNN_MNIST,
-        MLP_MNIST,
-        CNN_CIFAR,
-        LSTM_Shakespeare,
-    }
-    return mapper
+        DatasetNode('Shakespeare'),
+    ]
+    if   dataset=='MNIST': return mapper[0]
+    elif dataset=='CIFAR10': return mapper[1]
+    elif dataset=='Shakespeare': return mapper[2]
+    elif dataset is None: return mapper
+    else: raise AttributeError

@@ -29,9 +29,3 @@ def load_datanodes():
     }
     return mapper
 
-def load_models():
-    mapper = {
-        ResNet18,
-        ResNet20,
-    }
-    return mapper

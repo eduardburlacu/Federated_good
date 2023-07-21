@@ -59,24 +59,26 @@ class LSTM_Sent(Model):
         x = F.sigmoid(x)
         return x
 
-def load_models_datanodes():
-    mapper = {
+def load_models_datanodes(model:str =None , dataset:str = None):
+    mapper = [
         (LSTM_Sent, DatasetNode('Sent140')),
         (LSTM_Shakespeare, DatasetNode('Shakespeare')),
-    }
-    return mapper
+    ]
+    if model == 'LSTM' and dataset == 'Sent140':
+        return mapper[0]
+    elif model == 'LSTM' and dataset == 'Shakespeare':
+        return mapper[1]
+    elif model is None and dataset is None:
+        return mapper
+    else: raise AttributeError
 
-def load_datanodes():
-    mapper = {
+def load_datanodes(dataset:str = None):
+    mapper =[
         DatasetNode('Sent140'),
         DatasetNode('Shakespeare')
-    }
-    return mapper
+    ]
+    if dataset == 'Sent140': return mapper[0]
+    elif dataset == 'Shakespeare': return mapper[1]
+    else: raise AttributeError
 
-def load_models():
-    mapper = {
-        LSTM_Sent,
-        LSTM_Shakespeare,
-    }
-    return mapper
 

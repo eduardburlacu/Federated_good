@@ -3,8 +3,9 @@ import torchvision
 import os
 from src import PATH, PATH_sim
 class DatasetNode():
-  def __init__(self, dataset:str):
+  def __init__(self, dataset:str, iid:bool = True):
     self.name = dataset
+    self.iid = iid
 
     if dataset=='CIFAR10':
         self.dataset = torchvision.datasets.CIFAR10
@@ -34,23 +35,7 @@ class DatasetNode():
   def __repr__(self): return self.name
 
 def get_variables(file:str = 'mock'):
-    '''
-    Dictionary:
-    ---> Federated variables
-    NUM_CLIENTS = config['NUM_CLIENTS']
-    NUM_ROUNDS = config['NUM_ROUNDS']
-    CLIENT_FRAC = config['CLIENT_FRAC']
-    MIN_FIT_CLIENTS = config['MIN_FIT_CLIENTS']
-    MIN_EVALUABLE_CLIENTS = config['MIN_EVALUABLE_CLIENTS']
-    MIN_AVAILABLE_CLIENTS = config['MIN_AVAILABLE_CLIENTS']
 
-    ---> Data loading and training variables
-    DATASET = config['DATASET']
-    SEED = config['SEED']
-    VAL_SPLIT = config['VAL_SPLIT']
-    BATCH_SIZE = config['BATCH_SIZE']
-    EPOCHS = config['EPOCHS']
-    '''
     try: path = os.path.join(PATH['config'],file+'.toml')
     except: path = os.path.join(PATH_sim, file + '.toml')
 
