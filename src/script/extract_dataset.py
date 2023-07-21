@@ -11,3 +11,6 @@ def extract_data(is_embedded=False):
     )
     OUT_PATH = os.path.join(PATH_src['Dataset'],'data', dataset_name)
     make_data(IN_PATH, OUT_PATH, is_embedded)
+
+if __name__=='__main__':
+    extract_data()

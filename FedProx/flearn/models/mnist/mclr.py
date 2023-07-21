@@ -2,9 +2,9 @@ import numpy as np
 import tensorflow as tf
 from tqdm import trange
 
-from flearn.utils.model_utils import batch_data, batch_data_multiple_iters
-from flearn.utils.tf_utils import graph_size
-from flearn.utils.tf_utils import process_grad
+from FedProx.flearn.utils.model_utils import batch_data, batch_data_multiple_iters
+from FedProx.flearn.utils.tf_utils import graph_size
+from FedProx.flearn.utils.tf_utils import process_grad
 
 
 class Model(object):

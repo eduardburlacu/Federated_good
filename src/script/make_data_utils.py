@@ -41,10 +41,8 @@ def make_data(in_dir, out_dir, is_embedded=False):
                         else:
                             csv_writer.writerow([os.path.join(dirname, filename), y, user])
 
-EXPERIMENTS_PATH = os.path.join(PATH['config'],'simulations')
-
 def get_latest_experiment_dir(eid):
-    experiment_base_dir = os.path.join(EXPERIMENTS_PATH, str(eid))
+    experiment_base_dir = os.path.join(os.path.join(PATH['config'],'simulations'), str(eid))
     experiment_dir = os.path.join(experiment_base_dir, max(os.listdir(experiment_base_dir)))
     return experiment_dir
 
@@ -52,7 +50,7 @@ def get_log_filename(eid):
     return os.path.join(get_latest_experiment_dir(eid), f"{eid}.log")
 
 def prep_experiment_dir(eid):
-    experiment_base_dir = os.path.join(EXPERIMENTS_PATH, str(eid))
+    experiment_base_dir = os.path.join(os.path.join(PATH['config'],'simulations'), str(eid))
     try:
         os.mkdir(experiment_base_dir)
     except FileExistsError as _:

@@ -6,8 +6,8 @@ from src import PATH, PATH_src
 from src.script.make_data_utils import make_data
 
 def extract_sent140_data():
-    sent140_in_dir = os.path.join(PATH['leaf'], 'data', 'sent140', 'data', 'all_data')
-    sent140_out_dir = os.path.join(PATH_src['Dataset'],'data', 'sent140')
+    sent140_in_dir = os.path.join(PATH['FedProx'], 'data', 'sent140', 'data', 'all_data')
+    sent140_out_dir = os.path.join(PATH_src['Dataset'], 'sent140')
     make_data(sent140_in_dir, sent140_out_dir)
 
 if __name__ == "__main__":
