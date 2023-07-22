@@ -4,15 +4,12 @@ import flwr as fl
 from flwr.common.typing import Scalar
 import ray
 import torch
-from torch.utils.data import Dataset, DataLoader
 import numpy as np
-import pandas as pd
 from collections import OrderedDict
 from pathlib import Path
 from typing import Dict
 #----------------------------Internal Imports-----------------------------
 from src.utils import Net, train, test, get_params, set_params, importer
-from src.script.parse_config import get_variables, prepare_data
 from src.dataset_utils import get_cifar_10, do_fl_partitioning, get_dataloader
 
 class FlowerClient(fl.client.NumPyClient):
@@ -69,4 +66,3 @@ class FlowerClient(fl.client.NumPyClient):
 
         # Return statistics
         return float(loss), len(valloader.dataset), {"accuracy": float(accuracy)}
-

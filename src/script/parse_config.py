@@ -28,7 +28,7 @@ class DatasetNode():
         self.size = 805263
         self.classes = tuple("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
 
-    else: raise ValueError('DatasetNode is broken')
+    else: raise ValueError('DatasetNode')
 
     self.num_classes = len(self.classes)
 
@@ -44,7 +44,3 @@ def get_variables(file:str = 'mock'):
     config_var['DATASET'] = DatasetNode(config_var['DATASET'])
 
     return config_var
-
-def prepare_data(datanode:DatasetNode):
-    pass
-

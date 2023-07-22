@@ -18,3 +18,5 @@ sims  = os.listdir(path_sims)
 PATH_sim = {
     os.path.splitext(f)[0]: os.path.join(path_sims, f) for f in sims
 }
+
+GOD_CLIENT_NAME = "952630398097868223647162069900715440297608885786503411514402181337302872670061123373871861"

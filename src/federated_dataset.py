@@ -12,13 +12,13 @@ from PIL import Image
 from src import PATH,PATH_src, GOD_CLIENT_NAME
 #DATA_PATH, LEAF_PATH,
 
-# Expects a CSV file with format
-# img_name label client (img)
-# 000.npy c 0
-# 001.npy 9 0
-# 002.npy a 1
-# ...
 class FederatedDataset(Dataset):
+    '''
+    ---------------Info regarding data.csv
+    The columns are  [file path ex 000/0000001/pt] [label ex d] [client ex George] [img ie feature X, if the dataset is embedded]
+                            x[0]                      y=x[1]           cid=x[2]                     X = x[3]
+    '''
+
     clients = None
     def __init__(self, client_name, dataset_name, transform, test_train_split, type, min_no_samples, is_embedded):
         random.seed(0)  # Ensure that test-train split is done deterministically.
@@ -28,22 +28,23 @@ class FederatedDataset(Dataset):
         if FederatedDataset.clients == None:
             with open(self.dataset_file) as csvfile:
                 csvreader = csv.reader(csvfile, delimiter=' ')
-                rows = list(csvreader)[1:]
+                rows = list(csvreader)[1:] #Eliminate head of table
+
             FederatedDataset.clients = {}
             for x in rows:
                 if x[2] not in FederatedDataset.clients:
                     FederatedDataset.clients[x[2]] = []
                 if is_embedded:
-                    FederatedDataset.clients[x[2]].append((x[0], x[1], x[3]))
+                    FederatedDataset.clients[x[2]].append((x[0], x[1], x[3]))    # Form is (path to X, y, X)
                 else:
-                    FederatedDataset.clients[x[2]].append((x[0], x[1]))
+                    FederatedDataset.clients[x[2]].append((x[0], x[1]))          # Form is (path to X, y)
+
             for client in sorted(FederatedDataset.clients):
                 random.shuffle(FederatedDataset.clients[client])
+
             del_clients = [c for c in FederatedDataset.clients if len(FederatedDataset.clients[c]) < min_no_samples]
             for client in del_clients:
                 del FederatedDataset.clients[client]
-            # print("No of clients:", len(FederatedDataset.clients))
-            # print("No of samples:", sum([len(d) for _,d in FederatedDataset.clients.items()]))
 
         def get_data(client_name):
                 data = FederatedDataset.clients[client_name]
@@ -62,15 +63,15 @@ class FederatedDataset(Dataset):
                     return data[threshold:], cache[threshold:]
                 else:
                     raise Exception(f"Unsupported type {type}.")
+
         if self.client_name == GOD_CLIENT_NAME:
             self.samples = [x for client in FederatedDataset.clients for x in get_data(client)[0]]
-            self.cached = [x for client in FederatedDataset.clients for x in get_data(client)[1]]
+            self.cached =  [x for client in FederatedDataset.clients for x in get_data(client)[1]]
         else:
             self.samples, self.cached = get_data(client_name)
         self.transform = transform
 
-    def __len__(self):
-        return len(self.samples)
+    def __len__(self): return len(self.samples)
 
     # The returned value should match the format used in a model's loss() and test() functions.
     def __getitem__(self, idx):
@@ -85,20 +86,16 @@ class FederatedDataset(Dataset):
         return img, label
 
 def load_data(client_names, train_test_split, dataset_name, type, min_no_samples, is_embedded):
+
     [client_name] = client_names
+
     if dataset_name == "sent140":
         transform = EmbeddingTransformer()
     elif dataset_name == "shakespeare":
         transform = EmbeddingTransformerShakespeare()
-    elif dataset_name == "celeba":
-        def transform(x,y):
-            pil_img = Image.open(os.path.join(PATH['leaf'], 'data', 'celeba', 'data', 'raw', 'img_align_celeba', x))
-            pil_img = pil_img.resize((84, 84)).convert('RGB')
-            x = transforms.ToTensor()(pil_img)
-            # print("x", x)
-            return x, torch.tensor(int(float(y)))
     else:
         transform = (lambda x,y: (torch.tensor(x), torch.tensor(int(float(y)))))
+
     dataset = FederatedDataset(
         client_name=client_name,
         dataset_name=dataset_name,
