@@ -23,8 +23,18 @@ from src.client import FlowerClient
 
 #-------------------------------Setup parser------------------------------
 parser = argparse.ArgumentParser(description="Flower Simulation with PyTorch")
-parser.add_argument('--config', type=str, default='mock')
-parser.add_argument('--size', type=str, default='small')
+parser.add_argument('--config',
+                    help='name of configuration file (without .toml)',
+                    type=str,
+                    default='mock')
+parser.add_argument('--size',
+                    help='dataset size used',
+                    type=str,
+                    default='small')
+parser.add_argument('--seed',
+                    help='seed for randomness;',
+                    type=int,
+                    default=0)
 
 # -------------------------------Example----------------------------------------------
 # 1. Downloads CIFAR-10

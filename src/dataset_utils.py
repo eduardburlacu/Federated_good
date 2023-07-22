@@ -107,7 +107,6 @@ def cifar10Transformation():
         ]
     )
 
-
 class TorchVision_FL(VisionDataset):
     """This is just a trimmed down version of torchvision.datasets.MNIST.
 
@@ -155,7 +154,6 @@ class TorchVision_FL(VisionDataset):
 
     def __len__(self) -> int:
         return len(self.data)
-
 
 def get_cifar_10(path_to_data="./data"):
     """Downloads CIFAR10 dataset and generates a unified training set (it will
