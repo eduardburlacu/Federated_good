@@ -172,5 +172,4 @@ def get_cifar_10(path_to_data="./data"):
         root=path_to_data, train=False, transform=cifar10Transformation()
     )
 
-    # returns path where training data is and testset
     return training_data, test_set

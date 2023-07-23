@@ -41,24 +41,13 @@ parser.add_argument('--size',
                     help='dataset size used',
                     type=str,
                     default='small')
-parser.add_argument('--seed',
-                    help='seed for randomness;',
-                    type=int,
-                    default=0)
 
-# -------------------------------Example----------------------------------------------
-# 1. Downloads CIFAR-10
-# 2. Partitions the dataset into N splits, where N is the total number of
-#    clients. We refere to this as `pool_size`. The partition can be IID or non-IID
-# 3. Starts a simulation where a % of clients are sample each round.
-# 4. After the M rounds end, the global model is evaluated on the entire testset.
-#    Also, the global model is evaluated on the valset partition residing in each client.
 
 if __name__ == "__main__":
     #-----------------------------------Pipeline configuration, datasets, models-------------------
     args = parser.parse_args()                         # parse input arguments
     CONFIG = get_variables(args.config)                # Get toml config
-    set_random_seed(args['seed'])
+    set_random_seed(CONFIG['SEED'])
     if DEVICE.type=='cuda':
         client_resources = {'num_gpus': torch.cuda.device_count()}
     else: client_resources = { "num_cpus": CONFIG['CPUS'] }
@@ -103,7 +92,9 @@ if __name__ == "__main__":
             num_classes=CONFIG['DATASET'].num_classes,  # Inside it, there will be N=NUM_CLIENTS sub-directories each with its own train/set split.
             val_ratio=CONFIG['VAL_SPLIT']
         )
-    else: pass # Here add new code
+    else:
+        pass
+
 
     '''
     The following facts should be mirrored: 
@@ -112,7 +103,6 @@ if __name__ == "__main__":
     - Validate everything before simulation
     - Simulation
     - Improve efficiency by Lorenzo insight
-
     '''
     #------------------------------------------------Strategy-------------------------------------------------------
     def client_fn(cid: str): return FlowerClient(cid=cid, fed_dir_data=fed_dir, model_class=model)

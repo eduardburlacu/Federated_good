@@ -110,7 +110,3 @@ def load_data(client_names, train_test_split, dataset_name, type, min_no_samples
         is_embedded=is_embedded,
     )
     return dataset
-
-def get_dataloaders(dataset:FederatedDataset, batch_size:int, shuffle:bool = False, sampler=torch.utils.data.RandomSampler):
-    dl = DataLoader(dataset, batch_size, shuffle, sampler)
-    return dl

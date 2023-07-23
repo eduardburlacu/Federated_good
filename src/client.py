@@ -11,8 +11,11 @@ from pathlib import Path
 from typing import Dict
 #----------------------------Internal Imports-----------------------------
 from src.utils import Net, train, test, get_params, set_params, importer, set_random_seed
-from src.dataset_utils import get_cifar_10, do_fl_partitioning, get_dataloader
+from src.dataset_utils import get_dataloader
+from src.script.parse_config import get_variables
 from src.federated_dataset import load_data
+from src.Models import FedAvg
+
 def get_FlowerClient_class(model, CONFIG:Dict):
     class FlowerClient(fl.client.NumPyClient):
         model_class = model
@@ -25,8 +28,7 @@ def get_FlowerClient_class(model, CONFIG:Dict):
             self.net = None
             self.device = torch.device(f"cuda:{int(cid)%torch.cuda.device_count()}" if torch.cuda.is_available() else "cpu")
 
-        def get_parameters(self, config):
-            return [val.cpu().numpy() for _, val in self.net.state_dict().items()]
+        def get_parameters(self, config): return [val.cpu().numpy() for _, val in self.net.state_dict().items()]
 
         def fit(self, parameters, config):
             set_random_seed(CONFIG['SEED'])
@@ -51,7 +53,6 @@ def get_FlowerClient_class(model, CONFIG:Dict):
                     is_embedded=bool(int(config["is_embedded"])))
                 trainloader = DataLoader(
                     trainset, batch_size=CONFIG['BATCH_SIZE'], shuffle=True )
-
             self.net.to(self.device)
             train(self.net, trainloader, epochs=CONFIG["EPOCHS"], device=self.device)
             return get_params(self.net), len(trainloader.dataset), {}
@@ -71,11 +72,16 @@ def get_FlowerClient_class(model, CONFIG:Dict):
                     min_no_samples=FlowerClient.min_num_samples,
                     is_embedded=bool(int(config["is_embedded"])))
                 valloader = DataLoader(
-                    testset, batch_size=CONFIG['BATCH_SIZE'], shuffle=False )
+                    testset, batch_size=CONFIG['BATCH_SIZE'], shuffle=False ) #
 
-            self.net.to(self.device)
-            loss, accuracy = test(self.net, valloader, device=self.device)
+            self.net.to(self.device) #
+            loss, accuracy = test(self.net, valloader, device=self.device) #
 
-            return float(loss), len(valloader.dataset), {"accuracy": float(accuracy)}
+            return float(loss), len(valloader.dataset), {"accuracy": float(accuracy)} #
 
     return FlowerClient
+
+if __name__=='__main__':
+    model = FedAvg.CNN_CIFAR
+    CONFIG= get_variables('mock')
+    get_FlowerClient_class(model=model,CONFIG=CONFIG)
