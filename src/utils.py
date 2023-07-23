@@ -1,5 +1,6 @@
 import numpy as np
 import flwr as fl
+import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,6 +9,13 @@ from typing import List
 import os
 import importlib.util
 from src import PATH_src
+
+def set_random_seed(seed: int):
+    random.seed(1+seed)
+    np.random.seed(12 + seed)
+    torch.manual_seed(123 + seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(123 + seed) # Set seed for CUDA if available
 
 def importer(filename:str):
     module_path = os.path.join(PATH_src['Models'], filename+'.py') # Specify path to the file you want to import from

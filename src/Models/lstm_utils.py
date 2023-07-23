@@ -84,7 +84,6 @@ def _one_hot(index, size):
 def letter_to_idx(letter):
     return ALL_LETTERS.find(letter)
 
-
 def word_to_indices(word):
     '''returns a list of character indices
 

@@ -1,6 +1,6 @@
-AGGREGATOR = 'FedProx' #
-NUM_CLIENTS = 1000 #
-NUM_ROUNDS = 5
+AGGREGATOR = 'FedProx'
+NUM_CLIENTS = 1000 ##
+NUM_ROUNDS = 200 ##
 FRAC_FIT = 1.0
 FRAC_EVALUATE = 1.0
 MIN_FIT_CLIENTS = 10
@@ -11,11 +11,12 @@ MIN_AVAILABLE_CLIENTS = 10
 DATASET = 'MNIST' #
 IID = false
 ALFA = 1000
+SEED = 0
+MIN_DATASET_SIZE = 2
 MODEL = 'MLP'
-SEED = 42
 VAL_SPLIT = 0.1
-BATCH_SIZE = 32
-EPOCHS = 5
+BATCH_SIZE = 10 ##
+EPOCHS = 20 ##
 
-#Simulation resources
+#Simulation resources, in case GPU fails
 CPUS = 2

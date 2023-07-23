@@ -75,10 +75,7 @@ def generate_synthetic(alpha, beta, iid):
 
     return X_split, y_split
 
-
-
 def main():
-
 
     train_data = {'users': [], 'user_data':{}, 'num_samples':[]}
     test_data = {'users': [], 'user_data':{}, 'num_samples':[]}
@@ -90,7 +87,6 @@ def main():
     X, y = generate_synthetic(alpha=0.5, beta=0.5, iid=0) # synthetic (0.5, 0.5)
     #X, y = generate_synthetic(alpha=1, beta=1, iid=0)     # synthetic (1,1)
     #X, y = generate_synthetic(alpha=0, beta=0, iid=1)      # synthetic_IID
-
 
     # Create data structure
     train_data = {'users': [], 'user_data':{}, 'num_samples':[]}
@@ -118,7 +114,6 @@ def main():
         json.dump(train_data, outfile)
     with open(test_path, 'w') as outfile:
         json.dump(test_data, outfile)
-
 
 if __name__ == "__main__":
     main()

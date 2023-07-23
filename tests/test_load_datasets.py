@@ -1,7 +1,5 @@
 #----------------------------External Imports----------------------------
-import random
 import flwr as fl
-from flwr.common.typing import Scalar
 import torch
 from torch.utils.data import DataLoader
 if torch.cuda.is_available():
@@ -17,8 +15,6 @@ import sys
 src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 sys.path.insert(0, src_path)
 #----------------------------Internal Imports-----------------------------
-
-from src import PATH,PATH_src
 from src.federated_dataset import load_data
 
 
