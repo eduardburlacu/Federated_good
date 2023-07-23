@@ -4,13 +4,12 @@ import os
 import random
 from src.Models.lstm_utils import EmbeddingTransformer, EmbeddingTransformerShakespeare
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader #Sampler
 
 from torchvision import transforms
 from PIL import Image
 
 from src import PATH,PATH_src, GOD_CLIENT_NAME
-#DATA_PATH, LEAF_PATH,
 
 class FederatedDataset(Dataset):
     '''
@@ -18,7 +17,6 @@ class FederatedDataset(Dataset):
     The columns are  [file path ex 000/0000001/pt] [label ex d] [client ex George] [img ie feature X, if the dataset is embedded]
                             x[0]                      y=x[1]           cid=x[2]                     X = x[3]
     '''
-
     clients = None
     def __init__(self, client_name, dataset_name, transform, test_train_split, type, min_no_samples, is_embedded):
         random.seed(0)  # Ensure that test-train split is done deterministically.
@@ -29,7 +27,6 @@ class FederatedDataset(Dataset):
             with open(self.dataset_file) as csvfile:
                 csvreader = csv.reader(csvfile, delimiter=' ')
                 rows = list(csvreader)[1:] #Eliminate head of table
-
             FederatedDataset.clients = {}
             for x in rows:
                 if x[2] not in FederatedDataset.clients:
@@ -93,6 +90,13 @@ def load_data(client_names, train_test_split, dataset_name, type, min_no_samples
         transform = EmbeddingTransformer()
     elif dataset_name == "shakespeare":
         transform = EmbeddingTransformerShakespeare()
+    elif dataset_name == "celeba":
+        def transform(x,y):
+            pil_img = Image.open(os.path.join(PATH['FedProx'], 'data', 'celeba', 'data', 'raw', 'img_align_celeba', x))
+            pil_img = pil_img.resize((84, 84)).convert('RGB')
+            x = transforms.ToTensor()(pil_img)
+            # print("x", x)
+            return x, torch.tensor(int(float(y)))
     else:
         transform = (lambda x,y: (torch.tensor(x), torch.tensor(int(float(y)))))
 
@@ -106,3 +110,7 @@ def load_data(client_names, train_test_split, dataset_name, type, min_no_samples
         is_embedded=is_embedded,
     )
     return dataset
+
+def get_dataloaders(dataset:FederatedDataset, batch_size:int, shuffle:bool = False, sampler=torch.utils.data.RandomSampler):
+    dl = DataLoader(dataset, batch_size, shuffle, sampler)
+    return dl
