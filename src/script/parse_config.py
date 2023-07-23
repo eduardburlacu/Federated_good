@@ -26,8 +26,9 @@ class DatasetNode():
 
     elif dataset=='Shakespeare':
         self.task = 'language'
-        self.shape
 
+    elif dataset=='Sent140':
+        self.task = 'language'
 
     else: raise ValueError('DatasetNode')
 

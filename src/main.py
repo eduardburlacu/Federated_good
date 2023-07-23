@@ -29,6 +29,7 @@ from src.utils import train, test, get_params, set_params, importer, set_random_
 from src.script.parse_config import get_variables
 from src.dataset_utils import get_cifar_10, do_fl_partitioning, get_dataloader
 from src.client import get_FlowerClient_class
+from src.federated_dataset import load_data
 from src import PATH, GOD_CLIENT_NAME
 #-------------------------------Setup parser------------------------------
 parser = argparse.ArgumentParser(description="Flower Simulation with PyTorch")
@@ -50,7 +51,7 @@ if __name__ == "__main__":
     FlowerClient = get_FlowerClient_class(model, CONFIG)
     writer = SummaryWriter(PATH['logs'])
     # -----------------------------------------------Simulation-----------------------------------------------------
-    def get_evaluate_fn(testset: torchvision.datasets.CIFAR10, ) -> Callable[[fl.common.NDArrays], Optional[Tuple[float, float]]]:
+    def get_evaluate_fn(testset, ) -> Callable[[fl.common.NDArrays], Optional[Tuple[float, float]]]:
         """Return an evaluation function for centralized evaluation."""
         def evaluate( server_round: int, parameters: fl.common.NDArrays, config: Dict[str, Scalar] ) -> Optional[Tuple[float, float]]:
             """Use the entire CIFAR-10 test set for evaluation."""
@@ -58,7 +59,7 @@ if __name__ == "__main__":
             net = model()
             set_params(net, parameters)
             net.to(device)
-            testloader = torch.utils.data.DataLoader(testset, batch_size=50)
+            testloader = torch.utils.data.DataLoader(testset, batch_size=CONFIG['BATCH_SIZE'])
             loss, accuracy = test(net, testloader, device=device)
             writer.add_scalar("Loss/train", loss, server_round)
             writer.add_scalar("Accuracy/train", accuracy, server_round)
@@ -85,15 +86,18 @@ if __name__ == "__main__":
             num_classes=CONFIG['DATASET'].num_classes,  # Inside it, there will be N=NUM_CLIENTS sub-directories each with its own train/set split.
             val_ratio=CONFIG['VAL_SPLIT']
         )
+    else:
+        eval_client_names = [GOD_CLIENT_NAME]
+        testset = load_data(
+            client_names=eval_client_names,
+            train_test_split=CONFIG['VAL_SPLIT'],
+            dataset_name=CONFIG["DATASET"].name,
+            type="test",
+            min_no_samples=CONFIG["MIN_DATASET_SIZE"],
+            is_embedded=CONFIG["IS_EMBEDDED"],
+        )
+        print("centralized testset length: ", len(testset))
 
-    '''
-    The following facts should be mirrored: 
-    - I need a list with all clients and their sizes ---> json/csv file
-    - I need to make all CONFIG files for FedProx paper  
-    - Validate everything before simulation
-    - Simulation
-    - Improve efficiency by Lorenzo insight
-    '''
     #------------------------------------------------Strategy-------------------------------------------------------
     def client_fn(cid: str): return FlowerClient(cid=cid, fed_dir_data=fed_dir, model_class=model)
 

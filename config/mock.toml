@@ -9,6 +9,7 @@ MIN_AVAILABLE_CLIENTS = 10
 
 #Data loading and training variables
 DATASET = 'FEMNIST' #
+IS_EMBEDDED = false
 IID = false
 ALFA = 1000
 SEED = 0
