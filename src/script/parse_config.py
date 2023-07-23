@@ -1,5 +1,4 @@
 import toml
-import torchvision
 import os
 from src import PATH, PATH_sim
 class DatasetNode():
@@ -8,25 +7,27 @@ class DatasetNode():
     self.iid = iid
 
     if dataset=='CIFAR10':
-        self.dataset = torchvision.datasets.CIFAR10
         self.task = 'vision'
         self.shape = (3,32,32)
         self.size =60000
         self.classes = ("plane", "car", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck",)
 
     elif dataset=='MNIST':
-        self.dataset = torchvision.datasets.MNIST
         self.task = 'vision'
         self.shape = (1,28,28)
         self.size = 60000
         self.classes = tuple(i for i in range(1,10))
 
     elif dataset=='FEMNIST':
-        self.dataset = None
         self.task = 'vision'
         self.shape =(1,28,28)
         self.size = 805263
         self.classes = tuple("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+
+    elif dataset=='Shakespeare':
+        self.task = 'language'
+        self.shape
+
 
     else: raise ValueError('DatasetNode')
 

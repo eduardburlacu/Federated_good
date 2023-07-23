@@ -52,7 +52,7 @@ class EmbeddingTransformer():
         if not EmbeddingTransformer.is_loaded:
             EmbeddingTransformer.is_loaded = True
             print("Loading embs.json")
-            with open(os.path.join(PATH['leaf'], "models", "sent140", "embs.json")) as inf:
+            with open(os.path.join(PATH['FedProx'], 'flearn',"models", "sent140", "embs.json")) as inf:
                 embs = json.load(inf)
             print("Done loading embs.json")
             id2word = embs['vocab']

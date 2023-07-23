@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
     #--------------------------------------------Data preparation---------------------------------------------------
 
-    if CONFIG['DATASET'].lower() in {'cifar10'}:
+    if CONFIG['DATASET'].name.lower() in {'cifar10'}:
         train_path, testset = get_cifar_10()
         fed_dir = do_fl_partitioning(
             train_path,
