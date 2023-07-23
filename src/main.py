@@ -20,7 +20,6 @@ if torch.cuda.is_available():
     )
 else: DEVICE = torch.device('cpu')
 
-
 #----Insert main project directory so that we can resolve the src imports-------
 src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 sys.path.insert(0, src_path)
@@ -37,11 +36,6 @@ parser.add_argument('--config',
                     help='name of configuration file (without .toml)',
                     type=str,
                     default='mock')
-parser.add_argument('--size',
-                    help='dataset size used',
-                    type=str,
-                    default='small')
-
 
 if __name__ == "__main__":
     #-----------------------------------Pipeline configuration, datasets, models-------------------
@@ -52,9 +46,8 @@ if __name__ == "__main__":
         client_resources = {'num_gpus': torch.cuda.device_count()}
     else: client_resources = { "num_cpus": CONFIG['CPUS'] }
     module = importer(CONFIG['AGGREGATOR'])      # src/Models/Relevant file aliased as module
-    model, datanode = module.load_models_datanodes(CONFIG['MODEL'],CONFIG['DATASET'],CONFIG['IID'])
+    model, datanode = module.load_models_datanodes(CONFIG['MODEL'],CONFIG['DATASET'].name,CONFIG['IID'])
     FlowerClient = get_FlowerClient_class(model, CONFIG)
-    initialization_weights = model(GOD_CLIENT_NAME)
     writer = SummaryWriter(PATH['logs'])
     # -----------------------------------------------Simulation-----------------------------------------------------
     def get_evaluate_fn(testset: torchvision.datasets.CIFAR10, ) -> Callable[[fl.common.NDArrays], Optional[Tuple[float, float]]]:
@@ -83,7 +76,7 @@ if __name__ == "__main__":
 
     #--------------------------------------------Data preparation---------------------------------------------------
 
-    if CONFIG['DATASET'].lower() in {'cifar10','mnist'}:
+    if CONFIG['DATASET'].lower() in {'cifar10'}:
         train_path, testset = get_cifar_10()
         fed_dir = do_fl_partitioning(
             train_path,
@@ -92,9 +85,6 @@ if __name__ == "__main__":
             num_classes=CONFIG['DATASET'].num_classes,  # Inside it, there will be N=NUM_CLIENTS sub-directories each with its own train/set split.
             val_ratio=CONFIG['VAL_SPLIT']
         )
-    else:
-        pass
-
 
     '''
     The following facts should be mirrored: 
@@ -115,7 +105,7 @@ if __name__ == "__main__":
         min_available_clients=CONFIG['MIN_AVAILABLE_CLIENTS'],  # Wait until _ clients are available
         on_fit_config_fn=fit_config,                            #
         evaluate_fn=get_evaluate_fn(testset),                   # centralised eval of global model
-        initial_parameters= fl.common.ndarrays_to_parameters(initialization_weights),
+
     )
 
     ray_init_args = {"include_dashboard": False}                # (optional) specify Ray config

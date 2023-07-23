@@ -122,12 +122,10 @@ def load_models_datanodes(model:str =None , dataset:str = None, iid:bool = True)
         (CNN_MNIST, DatasetNode('MNIST',iid)),
         (MLP_MNIST, DatasetNode('MNIST', iid)),
         (CNN_CIFAR, DatasetNode('CIFAR10', iid)),
-        (LSTM_Shakespeare, DatasetNode('Shakespeare')),
     ]
     if   model == 'CNN' and dataset=='MNIST': return mapper[0]
     elif model == 'MLP' and dataset=='MNIST': return mapper[1]
     elif model == 'CNN' and dataset=='CIFAR10': return mapper[2]
-    elif model == 'LSTM' and dataset=='Shakespeare': return mapper[4]
     elif model is None and dataset is None: return mapper
     else: raise AttributeError
 

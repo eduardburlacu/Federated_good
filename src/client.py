@@ -35,7 +35,7 @@ def get_FlowerClient_class(model, CONFIG:Dict):
             if self.net is None: self.net = FlowerClient.model_class(self.cid)
             set_params(self.net, parameters)
             num_workers = int(ray.get_runtime_context().get_assigned_resources()["CPU"])
-            if CONFIG['DATASET'].lower() == 'cifar10':
+            if CONFIG['DATASET'].name.lower() == 'cifar10':
                 trainloader = get_dataloader(
                     self.fed_dir,
                     self.cid,
@@ -47,7 +47,7 @@ def get_FlowerClient_class(model, CONFIG:Dict):
                 trainset = load_data(
                     client_names=[config['client_name']],
                     train_test_split=FlowerClient.train_val_split,
-                    dataset_name=CONFIG['DATASET'].lower(),
+                    dataset_name=CONFIG['DATASET'].name.lower(),
                     type="train",
                     min_no_samples=FlowerClient.min_num_samples,
                     is_embedded=bool(int(config["is_embedded"])))
@@ -60,14 +60,14 @@ def get_FlowerClient_class(model, CONFIG:Dict):
         def evaluate(self, parameters, config):
             set_params(self.net, parameters)
             num_workers = int(ray.get_runtime_context().get_assigned_resources()["CPU"])
-            if CONFIG['DATASET'].lower() == 'cifar10':
+            if CONFIG['DATASET'].name.lower() == 'cifar10':
                 valloader = get_dataloader(
                     self.fed_dir, self.cid, is_train=False, batch_size=CONFIG['BATCH_SIZE'], workers=num_workers)
             else:
                 testset = load_data(
                     client_names=[config['client_name']],
                     train_test_split=FlowerClient.train_val_split,
-                    dataset_name=CONFIG['DATASET'].lower(),
+                    dataset_name=CONFIG['DATASET'].name.lower(),
                     type="test",
                     min_no_samples=FlowerClient.min_num_samples,
                     is_embedded=bool(int(config["is_embedded"])))
