@@ -88,7 +88,7 @@ class LSTM_Shakespeare(Model):
         x = self.fc1(h)
         x = F.softmax(x,dim=1)
         return x
-
+'''
 class LSTM_Large(Model):
     def __init__(self, cid,*args,**kwargs):
         super(LSTM_Large, self).__init__(cid,*args, **kwargs)
@@ -117,15 +117,19 @@ class LSTM_Large(Model):
         x = self.fc1(h)
         x = F.softmax(x,dim=1)
         return x
+'''
+
 def load_models_datanodes(model:str =None , dataset:str = None, iid:bool = True):
     mapper = [
         (CNN_MNIST, DatasetNode('MNIST',iid)),
         (MLP_MNIST, DatasetNode('MNIST', iid)),
         (CNN_CIFAR, DatasetNode('CIFAR10', iid)),
+        (LSTM_Shakespeare, DatasetNode('Shakespeare')),
     ]
     if   model == 'CNN' and dataset=='MNIST': return mapper[0]
     elif model == 'MLP' and dataset=='MNIST': return mapper[1]
     elif model == 'CNN' and dataset=='CIFAR10': return mapper[2]
+    elif model == 'LSTM' and dataset == 'Shakespeare': return mapper[3]
     elif model is None and dataset is None: return mapper
     else: raise AttributeError
 

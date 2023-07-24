@@ -26,9 +26,11 @@ class DatasetNode():
 
     elif dataset=='Shakespeare':
         self.task = 'language'
+        self.classes = tuple("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
 
     elif dataset=='Sent140':
         self.task = 'language'
+        self.classes = tuple(i for i in range(5))
 
     else: raise ValueError('DatasetNode')
 

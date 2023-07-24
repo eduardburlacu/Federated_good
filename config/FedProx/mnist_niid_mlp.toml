@@ -20,3 +20,32 @@ EPOCHS = 20 ##
 
 #Simulation resources, in case GPU fails
 CPUS = 2
+
+
+
+
+'''
+
+NUM_CLIENTS = 10 ##
+NUM_ROUNDS = 20 ##
+FRAC_FIT = 1.0
+FRAC_EVALUATE = 1.0
+MIN_FIT_CLIENTS = 10
+MIN_EVALUABLE_CLIENTS = 5
+MIN_AVAILABLE_CLIENTS = 10
+
+#Data loading and training variables
+DATASET = 'FEMNIST' #
+IS_EMBEDDED = false
+IID = false
+ALFA = 1000
+SEED = 0
+MIN_DATASET_SIZE = 2
+MODEL = 'MLP'
+VAL_SPLIT = 0.1
+BATCH_SIZE = 10 ##
+EPOCHS = 20 ##
+
+#Simulation resources, in case GPU fails
+CPUS = 2
+'''
