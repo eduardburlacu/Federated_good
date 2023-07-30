@@ -28,7 +28,6 @@ class Model(nn.Module):
 
     # ONLY USE THIS FOR TRAINING! REGULARIZATION SHOULD NOT BE APPLIED FOR TESTING!
     def train_step(self, data, mu, old_params):
-        # Assume that model, old_params is already set to the correct device by the client handler.
         images, labels = data[0].to(self.device), data[1].to(self.device)
         outputs = self(images)
         loss = nn.CrossEntropyLoss()(outputs, labels)

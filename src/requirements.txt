@@ -4,3 +4,4 @@ torchvision==0.13
 toml==0.10.1
 pydantic<2
 tensorboard
+matplotlib
