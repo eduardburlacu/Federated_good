@@ -28,7 +28,7 @@ sys.path.insert(0, src_path)
 from src.utils import train, test, get_params, set_params, importer, set_random_seed
 from src.script.parse_config import get_variables
 from src.dataset_utils import get_cifar_10, do_fl_partitioning, get_dataloader
-from src.client import get_FlowerClient_class
+from src.client import get_FlowerClient_class, get_FlwrClient_class
 from src.federated_dataset import load_data
 from src import PATH, GOD_CLIENT_NAME
 #-------------------------------Setup parser------------------------------
@@ -42,15 +42,14 @@ if __name__ == "__main__":
     #-----------------------------------Pipeline configuration, datasets, models-------------------
     args = parser.parse_args()                         # parse input arguments
     CONFIG = get_variables(args.config)                # Get toml config
-    set_random_seed(CONFIG['SEED'])
+    set_random_seed(CONFIG['SEED'])                    # Set seed as in FedProx ppr
     if DEVICE.type=='cuda':
         client_resources = {'num_gpus': torch.cuda.device_count()}
     else: client_resources = { "num_cpus": CONFIG['CPUS'] }
-    module = importer(CONFIG['AGGREGATOR'])      # src/Models/Relevant file aliased as module
-    model, datanode = module.load_models_datanodes(CONFIG['MODEL'],CONFIG['DATASET'].name,CONFIG['IID'])
-    FlowerClient = get_FlowerClient_class(model, CONFIG)
-    writer = SummaryWriter(PATH['logs'])
-    # -----------------------------------------------Simulation-----------------------------------------------------
+    module = importer(CONFIG['AGGREGATOR'])            # src/Models/Relevant file aliased as module
+    model, datanode = module.load_models_datanodes(CONFIG['MODEL'],CONFIG['DATASET'].name) ## add ,CONFIG['IID'] as argument!!!
+
+    # -----------------------------------------Simulation functions-------------------------------
     def get_evaluate_fn(testset, ) -> Callable[[fl.common.NDArrays], Optional[Tuple[float, float]]]:
         """Return an evaluation function for centralized evaluation."""
         def evaluate( server_round: int, parameters: fl.common.NDArrays, config: Dict[str, Scalar] ) -> Optional[Tuple[float, float]]:
@@ -61,8 +60,7 @@ if __name__ == "__main__":
             net.to(device)
             testloader = torch.utils.data.DataLoader(testset, batch_size=CONFIG['BATCH_SIZE'])
             loss, accuracy = test(net, testloader, device=device)
-            writer.add_scalar("Loss/train", loss, server_round)
-            writer.add_scalar("Accuracy/train", accuracy, server_round)
+
             return loss, {"accuracy": accuracy} # return metrics
 
         return evaluate
@@ -75,7 +73,7 @@ if __name__ == "__main__":
         }
         return config
 
-    #--------------------------------------------Data preparation---------------------------------------------------
+    #------------------------------------Data preparation and client function---------------------------------------
 
     if CONFIG['DATASET'].name.lower() in {'cifar10'}:
         train_path, testset = get_cifar_10()
@@ -86,6 +84,8 @@ if __name__ == "__main__":
             num_classes=CONFIG['DATASET'].num_classes,  # Inside it, there will be N=NUM_CLIENTS sub-directories each with its own train/set split.
             val_ratio=CONFIG['VAL_SPLIT']
         )
+        FlowerClient = get_FlowerClient_class(model, CONFIG)
+        def client_fn(cid: str): return FlowerClient(cid=cid, fed_dir_data=fed_dir, model_class=model)
     else:
         eval_client_names = [GOD_CLIENT_NAME]
         testset = load_data(
@@ -97,9 +97,9 @@ if __name__ == "__main__":
             is_embedded=CONFIG["IS_EMBEDDED"],
         )
         print("centralized testset length: ", len(testset))
-
+        FlowerClient = get_FlwrClient_class(model, CONFIG)
+        def client_fn(cid:str): return FlowerClient(cid)
     #------------------------------------------------Strategy-------------------------------------------------------
-    def client_fn(cid: str): return FlowerClient(cid=cid, fed_dir_data=fed_dir, model_class=model)
 
     strategy = fl.server.strategy.FedAvg(
         fraction_fit=CONFIG['FRAC_FIT'],                        # Sample _% of available clients for training round
@@ -122,4 +122,4 @@ if __name__ == "__main__":
         strategy=strategy,
         ray_init_args=ray_init_args,
     )
-    writer.close()
+

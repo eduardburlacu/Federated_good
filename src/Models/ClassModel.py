@@ -27,7 +27,10 @@ class Model(nn.Module):
         return [weight.size() for weight in self.state_dict().values()]
 
     # ONLY USE THIS FOR TRAINING! REGULARIZATION SHOULD NOT BE APPLIED FOR TESTING!
-    def train_step(self, data, mu, old_params):
+    def train_step(self, data, old_params, mu=0):
+        '''
+        To drop the proximal term, set mu=0.
+        '''
         images, labels = data[0].to(self.device), data[1].to(self.device)
         outputs = self(images)
         loss = nn.CrossEntropyLoss()(outputs, labels)
@@ -49,8 +52,6 @@ class Model(nn.Module):
         loss_fun = nn.CrossEntropyLoss(reduction=reduction)
         with torch.no_grad():
             for idx, data in enumerate(testloader):
-                # if idx % 1000 == 0:
-                # print(f"processed idx {idx} / {len(testloader)}")
                 images, labels = data[0].to(self.device), data[1].to(self.device)
                 outputs = self(images)
                 loss_now = loss_fun(outputs, labels).item()

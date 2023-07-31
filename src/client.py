@@ -91,16 +91,15 @@ def get_FlwrClient_class(model, VARIABLES:Dict):
         dataset_name = VARIABLES['DATASET'].name.lower()
         is_embedded = VARIABLES['IS_EMBEDDED']
         properties: Dict[str, Scalar] = {"tensor_type": "torch.Tensor"}
-        def __init__(self, cid:str, fed_dir_data: str, plot_detailed_training=True):
+        def __init__(self, cid:str, plot_detailed_training=True):
             self.cid = cid
-            self.fed_dir_data = fed_dir_data
             self.net = None
             self.device = torch.device( f"cuda:{int(cid) % torch.cuda.device_count()}" if torch.cuda.is_available() else "cpu")
             self.first_client = None
             self.plot_detailed_training = plot_detailed_training
         def get_parameters(self, config):
             return self.net.get_weights()
-        def set_parameters(self, params: List[torch.Tensor]):
+        def set_parameters(self, params):
             self.net.set_weights(params)
         def fit(self, parameters, config):
             if self.net is None: self.net = FlwrClient.model_class()
@@ -123,6 +122,7 @@ def get_FlwrClient_class(model, VARIABLES:Dict):
                 n_steps = len(trainloader)
             prev_global_params = deepcopy(list(self.net.parameters()))
             prev_global_params = [p.to(self.device) for p in prev_global_params ]
+            self.net.train()
             self.net.to(self.device)
             for e in range(config['epochs']):
                 for local_step, data in trainloader:
@@ -140,7 +140,14 @@ def get_FlwrClient_class(model, VARIABLES:Dict):
             out_config ={} #### TO BE FILLED IN WHEN DOING STRATEGY
             return self.net.get_weights(), len(trainset), out_config
 
+        def evaluate( self, parameters, config: Dict[str, Scalar]):
+            raise EnvironmentError('Client evaluation called when we expected server side evaluation.')
+
+    return FlwrClient
+
 if __name__=='__main__':
+    from src import GOD_CLIENT_NAME
     model = FedAvg.CNN_CIFAR
     CONFIG= get_variables('mock')
-    get_FlwrClient_class(model=model,VARIABLES=CONFIG)
+    FlwrClient = get_FlwrClient_class(model=model,VARIABLES=CONFIG)
+    client = FlwrClient(GOD_CLIENT_NAME)
