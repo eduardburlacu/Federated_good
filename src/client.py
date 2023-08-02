@@ -1,153 +1,178 @@
-#----------------------------External Imports----------------------------
-from copy import deepcopy
+"""Defines the MNIST Flower Client and a function to instantiate it."""
+
+
+from collections import OrderedDict
+from typing import Callable, Dict, List, Tuple
+
 import flwr as fl
-from flwr.common.typing import Scalar
 import numpy as np
-import ray
 import torch
+from flwr.common.typing import NDArrays, Scalar
+from hydra.utils import instantiate
+from omegaconf import DictConfig
 from torch.utils.data import DataLoader
-from pathlib import Path
-from typing import Dict, List
-#----------------------------Internal Imports-----------------------------
-from src.utils import train, test, get_params, set_params, set_random_seed
-from src.dataset_utils import get_dataloader
-from src.script.parse_config import get_variables
-from src.federated_dataset import load_data
-from src.Models import FedAvg
-from src.visualizer import summarize_loss
 
-def get_FlowerClient_class(model, VARIABLES:Dict):
-    class FlowerClient(fl.client.NumPyClient):
-        model_class = model
-        train_val_split = VARIABLES['VAL_SPLIT']
-        min_num_samples = VARIABLES['MIN_DATASET_SIZE']
-        properties: Dict[str, Scalar] = {"tensor_type": "numpy.ndarray"}
-        def __init__(self, cid: str, fed_dir_data: str, ):
-            self.cid = cid
-            self.fed_dir = Path(fed_dir_data)
-            self.net = None
-            self.device = torch.device(f"cuda:{int(cid)%torch.cuda.device_count()}" if torch.cuda.is_available() else "cpu")
+from src.dataset import load_datasets
+from src.models import test, train
 
-        def get_parameters(self, config): return [val.cpu().numpy() for _, val in self.net.state_dict().items()]
 
-        def fit(self, parameters, config):
-            set_random_seed(VARIABLES['SEED'])
-            if self.net is None: self.net = FlowerClient.model_class(self.cid)
-            set_params(self.net, parameters)
-            num_workers = int(ray.get_runtime_context().get_assigned_resources()["CPU"])
-            if VARIABLES['DATASET'].name.lower() == 'cifar10':
-                trainloader = get_dataloader(
-                    self.fed_dir,
-                    self.cid,
-                    is_train=True,
-                    batch_size=VARIABLES['BATCH_SIZE'],
-                    workers=num_workers,
+class FlowerClient(
+    fl.client.NumPyClient
+):  # pylint: disable=too-many-instance-attributes
+    """Standard Flower client for CNN training."""
+
+    def __init__(
+        self,
+        net: torch.nn.Module,
+        trainloader: DataLoader,
+        valloader: DataLoader,
+        device: torch.device,
+        num_epochs: int,
+        learning_rate: float,
+        straggler_schedule: np.ndarray,
+    ):  # pylint: disable=too-many-arguments
+        self.net = net
+        self.trainloader = trainloader
+        self.valloader = valloader
+        self.device = device
+        self.num_epochs = num_epochs
+        self.learning_rate = learning_rate
+        self.straggler_schedule = straggler_schedule
+
+    def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
+        """Returns the parameters of the current net."""
+        return [val.cpu().numpy() for _, val in self.net.state_dict().items()]
+
+    def set_parameters(self, parameters: NDArrays) -> None:
+        """Changes the parameters of the model using the given ones."""
+        params_dict = zip(self.net.state_dict().keys(), parameters)
+        state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
+        self.net.load_state_dict(state_dict, strict=True)
+
+    def fit(
+        self, parameters: NDArrays, config: Dict[str, Scalar]
+    ) -> Tuple[NDArrays, int, Dict]:
+        """Implements distributed fit function for a given client."""
+        self.set_parameters(parameters)
+
+        # At each round check if the client is a straggler,
+        # if so, train less epochs (to simulate partial work)
+        # if the client is told to be dropped (e.g. because not using
+        # FedProx in the server), the fit method returns without doing
+        # training.
+        # This method always returns via the metrics (last argument being
+        # returned) whether the client is a straggler or not. This info
+        # is used by strategies other than FedProx to discard the update.
+        if (
+            self.straggler_schedule[int(config["curr_round"]) - 1]
+            and self.num_epochs > 1
+        ):
+            num_epochs = np.random.randint(1, self.num_epochs)
+
+            if config["drop_client"]:
+                # return without doing any training.
+                # The flag in the metric will be used to tell the strategy
+                # to discard the model upon aggregation
+                return (
+                    self.get_parameters({}),
+                    len(self.trainloader),
+                    {"is_straggler": True},
                 )
-            else:
-                trainset = load_data(
-                    client_names=[config['client_name']],
-                    train_test_split=FlowerClient.train_val_split,
-                    dataset_name=VARIABLES['DATASET'].name.lower(),
-                    type="train",
-                    min_no_samples=FlowerClient.min_num_samples,
-                    is_embedded=bool(int(config["is_embedded"])))
-                trainloader = DataLoader(
-                    trainset, batch_size=VARIABLES['BATCH_SIZE'], shuffle=True )
-            self.net.to(self.device)
-            train(self.net, trainloader, epochs=VARIABLES["EPOCHS"], device=self.device)
-            return get_params(self.net), len(trainloader.dataset), {}
 
-        def evaluate(self, parameters, config):
-            set_params(self.net, parameters)
-            num_workers = int(ray.get_runtime_context().get_assigned_resources()["CPU"])
-            if VARIABLES['DATASET'].name.lower() == 'cifar10':
-                valloader = get_dataloader(
-                    self.fed_dir, self.cid, is_train=False, batch_size=VARIABLES['BATCH_SIZE'], workers=num_workers)
-            else:
-                testset = load_data(
-                    client_names=[config['client_name']],
-                    train_test_split=FlowerClient.train_val_split,
-                    dataset_name=VARIABLES['DATASET'].name.lower(),
-                    type="test",
-                    min_no_samples=FlowerClient.min_num_samples,
-                    is_embedded=bool(int(config["is_embedded"])))
-                valloader = DataLoader(
-                    testset, batch_size=VARIABLES['BATCH_SIZE'], shuffle=False ) #
+        else:
+            num_epochs = self.num_epochs
 
-            self.net.to(self.device) #
-            loss, accuracy = test(self.net, valloader, device=self.device) #
+        train(
+            self.net,
+            self.trainloader,
+            self.device,
+            epochs=num_epochs,
+            learning_rate=self.learning_rate,
+            proximal_mu=config["proximal_mu"],
+        )
 
-            return float(loss), len(valloader.dataset), {"accuracy": float(accuracy)} #
+        return self.get_parameters({}), len(self.trainloader), {"is_straggler": False}
 
-    return FlowerClient
+    def evaluate(
+        self, parameters: NDArrays, config: Dict[str, Scalar]
+    ) -> Tuple[float, int, Dict]:
+        """Implements distributed evaluation for a given client."""
+        self.set_parameters(parameters)
+        loss, accuracy = test(self.net, self.valloader, self.device)
+        return float(loss), len(self.valloader), {"accuracy": float(accuracy)}
 
-def get_FlwrClient_class(model, VARIABLES:Dict):
-    class FlwrClient(fl.client.NumPyClient):
 
-        model_class = model
-        train_test_split = VARIABLES['VAL_SPLIT']
-        batch_size = VARIABLES['BATCH_SIZE']
-        min_num_samples = VARIABLES['MIN_DATASET_SIZE']
-        dataset_name = VARIABLES['DATASET'].name.lower()
-        is_embedded = VARIABLES['IS_EMBEDDED']
-        properties: Dict[str, Scalar] = {"tensor_type": "torch.Tensor"}
-        def __init__(self, cid:str, plot_detailed_training=True):
-            self.cid = cid
-            self.net = None
-            self.device = torch.device( f"cuda:{int(cid) % torch.cuda.device_count()}" if torch.cuda.is_available() else "cpu")
-            self.first_client = None
-            self.plot_detailed_training = plot_detailed_training
-        def get_parameters(self, config):
-            return self.net.get_weights()
-        def set_parameters(self, params):
-            self.net.set_weights(params)
-        def fit(self, parameters, config):
-            if self.net is None: self.net = FlwrClient.model_class()
-            if self.first_client is None: self.first_client = config['first_client']
-            set_random_seed(VARIABLES['SEED'])
-            self.net.set_weights(parameters)
-            optimizer = torch.optim.SGD(self.net.parameters(), lr= config['learning rate'])
-            trainset = load_data(
-                client_names=[config['client_name']],
-                train_test_split=self.train_test_split,
-                dataset_name= FlwrClient.dataset_name,
-                type="train",
-                min_no_samples = FlwrClient.min_num_samples,
-                is_embedded = FlwrClient.is_embedded
-            )
-            trainloader = DataLoader(trainset, FlwrClient.batch_size, shuffle=True)
-            if int(config['steps_per_epoch']) > 0:
-                n_steps = min(int(config['steps_per_epoch']), len(trainloader))
-            else:
-                n_steps = len(trainloader)
-            prev_global_params = deepcopy(list(self.net.parameters()))
-            prev_global_params = [p.to(self.device) for p in prev_global_params ]
-            self.net.train()
-            self.net.to(self.device)
-            for e in range(config['epochs']):
-                for local_step, data in trainloader:
-                    if local_step == n_steps: break
-                    optimizer.zero_grad()
-                    loss = self.net.train_step(data=data,
-                                        mu = float(config["mu"]),
-                                        old_params = prev_global_params )
-                    loss.backward()
-                    optimizer.step()
-                    step = (config['epoch_global'] - 1) * config['epochs'] * n_steps + config['epoch'] * n_steps + local_step
-                    if config['client_name'] == self.first_client and self.plot_detailed_training:
-                        summarize_loss(f"training-detailed/{config['client_name']}", loss, step)
-                    self.net.to(torch.device("cpu"))
-            out_config ={} #### TO BE FILLED IN WHEN DOING STRATEGY
-            return self.net.get_weights(), len(trainset), out_config
+def gen_client_fn(
+    num_clients: int,
+    num_rounds: int,
+    num_epochs: int,
+    trainloaders: List[DataLoader],
+    valloaders: List[DataLoader],
+    learning_rate: float,
+    stragglers: float,
+    model: DictConfig,
+) -> Tuple[
+    Callable[[str], FlowerClient], DataLoader
+]:  # pylint: disable=too-many-arguments
+    """Generates the client function that creates the Flower Clients.
 
-        def evaluate( self, parameters, config: Dict[str, Scalar]):
-            raise EnvironmentError('Client evaluation called when we expected server side evaluation.')
+    Parameters
+    ----------
+    num_clients : int
+        The number of clients present in the setup
+    num_rounds: int
+        The number of rounds in the experiment. This is used to construct
+        the scheduling for stragglers
+    num_epochs : int
+        The number of local epochs each client should run the training for before
+        sending it to the server.
+    trainloaders: List[DataLoader]
+        A list of DataLoaders, each pointing to the dataset training partition
+        belonging to a particular client.
+    valloaders: List[DataLoader]
+        A list of DataLoaders, each pointing to the dataset validation partition
+        belonging to a particular client.
+    learning_rate : float
+        The learning rate for the SGD  optimizer of clients.
+    stragglers : float
+        Proportion of stragglers in the clients, between 0 and 1.
 
-    return FlwrClient
+    Returns
+    -------
+    Tuple[Callable[[str], FlowerClient], DataLoader]
+        A tuple containing the client function that creates Flower Clients and
+        the DataLoader that will be used for testing
+    """
 
-if __name__=='__main__':
-    from src import GOD_CLIENT_NAME
-    model = FedAvg.CNN_CIFAR
-    CONFIG= get_variables('mock')
-    FlwrClient = get_FlwrClient_class(model=model,VARIABLES=CONFIG)
-    client = FlwrClient(GOD_CLIENT_NAME)
+    # Defines a staggling schedule for each clients, i.e at which round will they
+    # be a straggler. This is done so at each round the proportion of staggling
+    # clients is respected
+    stragglers_mat = np.transpose(
+        np.random.choice(
+            [0, 1], size=(num_rounds, num_clients), p=[1 - stragglers, stragglers]
+        )
+    )
+
+    def client_fn(cid: str) -> FlowerClient:
+        """Create a Flower client representing a single organization."""
+
+        # Load model
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        net = instantiate(model).to(device)
+
+        # Note: each client gets a different trainloader/valloader, so each client
+        # will train and evaluate on their own unique data
+        trainloader = trainloaders[int(cid)]
+        valloader = valloaders[int(cid)]
+
+        return FlowerClient(
+            net,
+            trainloader,
+            valloader,
+            device,
+            num_epochs,
+            learning_rate,
+            stragglers_mat[int(cid)],
+        )
+
+    return client_fn

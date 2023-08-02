@@ -1,4 +1,4 @@
 baseline/dataset/
-baseline/outputs/
+../outputs/
 playground.ipynb
-baseline/multirun/
+../multirun/

@@ -19,4 +19,9 @@ PATH_sim = {
     os.path.splitext(f)[0]: os.path.join(path_sims, f) for f in sims
 }
 
+data_directories = os.listdir(os.path.join(PATH['FedProx'],'data'))
+
+PATH_data = {
+    os.path.splitext(f)[0]: os.path.join(path_sims, f) for f in data_directories
+}
 GOD_CLIENT_NAME = "952630398097868223647162069900715440297608885786503411514402181337302872670061123373871861"

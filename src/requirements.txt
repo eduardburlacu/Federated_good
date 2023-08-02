@@ -1,7 +1,0 @@
-flwr[simulation]>=1.0, <2.0
-torch<2
-torchvision
-toml
-pydantic<2
-tensorboard
-matplotlib

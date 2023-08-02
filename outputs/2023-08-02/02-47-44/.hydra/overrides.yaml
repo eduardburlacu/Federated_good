@@ -1,0 +1,2 @@
+- server_device=cuda
+- client_resources.num_gpus=0.25

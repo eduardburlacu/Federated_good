@@ -1,0 +1,414 @@
+[2023-08-02 03:22:07,826][flwr][INFO] - Starting Flower simulation, config: ServerConfig(num_rounds=100, round_timeout=None)
+[2023-08-02 03:22:12,674][flwr][INFO] - Flower VCE: Ray initialized with resources: {'CPU': 20.0, 'node:192.168.43.142': 1.0, 'memory': 4125457614.0, 'object_store_memory': 2062728806.0}
+[2023-08-02 03:22:12,677][flwr][INFO] - Initializing global parameters
+[2023-08-02 03:22:12,677][flwr][INFO] - Requesting initial parameters from one random client
+[2023-08-02 03:22:14,234][flwr][INFO] - Received initial parameters from one random client
+[2023-08-02 03:22:14,235][flwr][INFO] - Evaluating initial parameters
+[2023-08-02 03:22:15,169][flwr][INFO] - initial parameters (loss, other metrics): 0.25226967413425444, {'accuracy': 0.0541}
+[2023-08-02 03:22:15,170][flwr][INFO] - FL starting
+[2023-08-02 03:22:15,170][flwr][DEBUG] - fit_round 1: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:17,812][flwr][DEBUG] - fit_round 1 received 10 results and 0 failures
+[2023-08-02 03:22:17,815][flwr][WARNING] - No fit_metrics_aggregation_fn provided
+[2023-08-02 03:22:18,686][flwr][INFO] - fit progress: (1, 0.42206174051761625, {'accuracy': 0.1964}, 3.516428644012194)
+[2023-08-02 03:22:18,686][flwr][INFO] - evaluate_round 1: no clients selected, cancel
+[2023-08-02 03:22:18,687][flwr][DEBUG] - fit_round 2: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:20,797][flwr][DEBUG] - fit_round 2 received 10 results and 0 failures
+[2023-08-02 03:22:21,634][flwr][INFO] - fit progress: (2, 0.20544009860157966, {'accuracy': 0.3481}, 6.4640839690109715)
+[2023-08-02 03:22:21,634][flwr][INFO] - evaluate_round 2: no clients selected, cancel
+[2023-08-02 03:22:21,634][flwr][DEBUG] - fit_round 3: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:22,506][flwr][DEBUG] - fit_round 3 received 10 results and 0 failures
+[2023-08-02 03:22:24,356][flwr][INFO] - fit progress: (3, 0.1772584744513035, {'accuracy': 0.3998}, 9.18606275098864)
+[2023-08-02 03:22:24,356][flwr][INFO] - evaluate_round 3: no clients selected, cancel
+[2023-08-02 03:22:24,357][flwr][DEBUG] - fit_round 4: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:25,462][flwr][DEBUG] - fit_round 4 received 10 results and 0 failures
+[2023-08-02 03:22:26,302][flwr][INFO] - fit progress: (4, 0.16162356524169444, {'accuracy': 0.4707}, 11.132567138003651)
+[2023-08-02 03:22:26,302][flwr][INFO] - evaluate_round 4: no clients selected, cancel
+[2023-08-02 03:22:26,303][flwr][DEBUG] - fit_round 5: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:26,906][flwr][DEBUG] - fit_round 5 received 10 results and 0 failures
+[2023-08-02 03:22:27,778][flwr][INFO] - fit progress: (5, 0.1162346527248621, {'accuracy': 0.614}, 12.608711287030019)
+[2023-08-02 03:22:27,779][flwr][INFO] - evaluate_round 5: no clients selected, cancel
+[2023-08-02 03:22:27,779][flwr][DEBUG] - fit_round 6: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:28,513][flwr][DEBUG] - fit_round 6 received 10 results and 0 failures
+[2023-08-02 03:22:29,428][flwr][INFO] - fit progress: (6, 0.14172354870736598, {'accuracy': 0.4737}, 14.258465312013868)
+[2023-08-02 03:22:29,428][flwr][INFO] - evaluate_round 6: no clients selected, cancel
+[2023-08-02 03:22:29,429][flwr][DEBUG] - fit_round 7: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:30,139][flwr][DEBUG] - fit_round 7 received 10 results and 0 failures
+[2023-08-02 03:22:30,984][flwr][INFO] - fit progress: (7, 0.11278121151328087, {'accuracy': 0.5687}, 15.813941020984203)
+[2023-08-02 03:22:30,984][flwr][INFO] - evaluate_round 7: no clients selected, cancel
+[2023-08-02 03:22:30,984][flwr][DEBUG] - fit_round 8: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:31,669][flwr][DEBUG] - fit_round 8 received 10 results and 0 failures
+[2023-08-02 03:22:32,519][flwr][INFO] - fit progress: (8, 0.09068175483196973, {'accuracy': 0.6971}, 17.349125805019867)
+[2023-08-02 03:22:32,519][flwr][INFO] - evaluate_round 8: no clients selected, cancel
+[2023-08-02 03:22:32,519][flwr][DEBUG] - fit_round 9: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:33,218][flwr][DEBUG] - fit_round 9 received 10 results and 0 failures
+[2023-08-02 03:22:34,093][flwr][INFO] - fit progress: (9, 0.09755906308740378, {'accuracy': 0.669}, 18.92381072801072)
+[2023-08-02 03:22:34,094][flwr][INFO] - evaluate_round 9: no clients selected, cancel
+[2023-08-02 03:22:34,094][flwr][DEBUG] - fit_round 10: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:34,797][flwr][DEBUG] - fit_round 10 received 10 results and 0 failures
+[2023-08-02 03:22:35,676][flwr][INFO] - fit progress: (10, 0.09044594259113073, {'accuracy': 0.6714}, 20.506235804001335)
+[2023-08-02 03:22:35,676][flwr][INFO] - evaluate_round 10: no clients selected, cancel
+[2023-08-02 03:22:35,676][flwr][DEBUG] - fit_round 11: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:36,408][flwr][DEBUG] - fit_round 11 received 10 results and 0 failures
+[2023-08-02 03:22:37,244][flwr][INFO] - fit progress: (11, 0.12109501513242722, {'accuracy': 0.5696}, 22.07445012498647)
+[2023-08-02 03:22:37,244][flwr][INFO] - evaluate_round 11: no clients selected, cancel
+[2023-08-02 03:22:37,245][flwr][DEBUG] - fit_round 12: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:38,883][flwr][DEBUG] - fit_round 12 received 10 results and 0 failures
+[2023-08-02 03:22:39,750][flwr][INFO] - fit progress: (12, 0.2478223524570465, {'accuracy': 0.3224}, 24.580312073987443)
+[2023-08-02 03:22:39,750][flwr][INFO] - evaluate_round 12: no clients selected, cancel
+[2023-08-02 03:22:39,750][flwr][DEBUG] - fit_round 13: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:40,922][flwr][DEBUG] - fit_round 13 received 10 results and 0 failures
+[2023-08-02 03:22:41,804][flwr][INFO] - fit progress: (13, 0.17511593127548694, {'accuracy': 0.3842}, 26.634042229037732)
+[2023-08-02 03:22:41,804][flwr][INFO] - evaluate_round 13: no clients selected, cancel
+[2023-08-02 03:22:41,804][flwr][DEBUG] - fit_round 14: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:42,481][flwr][DEBUG] - fit_round 14 received 10 results and 0 failures
+[2023-08-02 03:22:43,326][flwr][INFO] - fit progress: (14, 0.08111341508328915, {'accuracy': 0.7186}, 28.155938398034777)
+[2023-08-02 03:22:43,326][flwr][INFO] - evaluate_round 14: no clients selected, cancel
+[2023-08-02 03:22:43,328][flwr][DEBUG] - fit_round 15: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:44,801][flwr][DEBUG] - fit_round 15 received 10 results and 0 failures
+[2023-08-02 03:22:45,633][flwr][INFO] - fit progress: (15, 0.11510132972151041, {'accuracy': 0.5456}, 30.46315180102829)
+[2023-08-02 03:22:45,633][flwr][INFO] - evaluate_round 15: no clients selected, cancel
+[2023-08-02 03:22:45,633][flwr][DEBUG] - fit_round 16: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:46,245][flwr][DEBUG] - fit_round 16 received 10 results and 0 failures
+[2023-08-02 03:22:47,097][flwr][INFO] - fit progress: (16, 0.08913394016698002, {'accuracy': 0.6855}, 31.92696638900088)
+[2023-08-02 03:22:47,097][flwr][INFO] - evaluate_round 16: no clients selected, cancel
+[2023-08-02 03:22:47,097][flwr][DEBUG] - fit_round 17: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:47,699][flwr][DEBUG] - fit_round 17 received 10 results and 0 failures
+[2023-08-02 03:22:48,581][flwr][INFO] - fit progress: (17, 0.07424074913784862, {'accuracy': 0.7293}, 33.41086137003731)
+[2023-08-02 03:22:48,581][flwr][INFO] - evaluate_round 17: no clients selected, cancel
+[2023-08-02 03:22:48,583][flwr][DEBUG] - fit_round 18: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:49,331][flwr][DEBUG] - fit_round 18 received 10 results and 0 failures
+[2023-08-02 03:22:50,218][flwr][INFO] - fit progress: (18, 0.06947270640432834, {'accuracy': 0.7599}, 35.04856623901287)
+[2023-08-02 03:22:50,218][flwr][INFO] - evaluate_round 18: no clients selected, cancel
+[2023-08-02 03:22:50,219][flwr][DEBUG] - fit_round 19: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:51,134][flwr][DEBUG] - fit_round 19 received 10 results and 0 failures
+[2023-08-02 03:22:51,967][flwr][INFO] - fit progress: (19, 0.06532439883127808, {'accuracy': 0.7861}, 36.797696574009024)
+[2023-08-02 03:22:51,968][flwr][INFO] - evaluate_round 19: no clients selected, cancel
+[2023-08-02 03:22:51,968][flwr][DEBUG] - fit_round 20: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:52,836][flwr][DEBUG] - fit_round 20 received 10 results and 0 failures
+[2023-08-02 03:22:53,668][flwr][INFO] - fit progress: (20, 0.09330825152024627, {'accuracy': 0.6842}, 38.49797268898692)
+[2023-08-02 03:22:53,668][flwr][INFO] - evaluate_round 20: no clients selected, cancel
+[2023-08-02 03:22:53,668][flwr][DEBUG] - fit_round 21: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:54,336][flwr][DEBUG] - fit_round 21 received 10 results and 0 failures
+[2023-08-02 03:22:55,179][flwr][INFO] - fit progress: (21, 0.12372713502719998, {'accuracy': 0.5947}, 40.00897511001676)
+[2023-08-02 03:22:55,179][flwr][INFO] - evaluate_round 21: no clients selected, cancel
+[2023-08-02 03:22:55,179][flwr][DEBUG] - fit_round 22: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:55,860][flwr][DEBUG] - fit_round 22 received 10 results and 0 failures
+[2023-08-02 03:22:56,926][flwr][INFO] - fit progress: (22, 0.06748923404552043, {'accuracy': 0.7802}, 41.756625653011724)
+[2023-08-02 03:22:56,927][flwr][INFO] - evaluate_round 22: no clients selected, cancel
+[2023-08-02 03:22:56,927][flwr][DEBUG] - fit_round 23: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:57,657][flwr][DEBUG] - fit_round 23 received 10 results and 0 failures
+[2023-08-02 03:22:58,547][flwr][INFO] - fit progress: (23, 0.06536988556943833, {'accuracy': 0.7663}, 43.37761479703477)
+[2023-08-02 03:22:58,548][flwr][INFO] - evaluate_round 23: no clients selected, cancel
+[2023-08-02 03:22:58,548][flwr][DEBUG] - fit_round 24: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:22:59,312][flwr][DEBUG] - fit_round 24 received 10 results and 0 failures
+[2023-08-02 03:23:00,146][flwr][INFO] - fit progress: (24, 0.05610476633366197, {'accuracy': 0.8136}, 44.97678820503643)
+[2023-08-02 03:23:00,147][flwr][INFO] - evaluate_round 24: no clients selected, cancel
+[2023-08-02 03:23:00,147][flwr][DEBUG] - fit_round 25: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:01,031][flwr][DEBUG] - fit_round 25 received 10 results and 0 failures
+[2023-08-02 03:23:01,872][flwr][INFO] - fit progress: (25, 0.05722131968419999, {'accuracy': 0.8079}, 46.7025732070324)
+[2023-08-02 03:23:01,872][flwr][INFO] - evaluate_round 25: no clients selected, cancel
+[2023-08-02 03:23:01,873][flwr][DEBUG] - fit_round 26: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:02,716][flwr][DEBUG] - fit_round 26 received 10 results and 0 failures
+[2023-08-02 03:23:03,567][flwr][INFO] - fit progress: (26, 0.10425416984409094, {'accuracy': 0.6227}, 48.39708846999565)
+[2023-08-02 03:23:03,567][flwr][INFO] - evaluate_round 26: no clients selected, cancel
+[2023-08-02 03:23:03,567][flwr][DEBUG] - fit_round 27: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:05,595][flwr][DEBUG] - fit_round 27 received 10 results and 0 failures
+[2023-08-02 03:23:06,451][flwr][INFO] - fit progress: (27, 0.07461113843806089, {'accuracy': 0.7254}, 51.28105946199503)
+[2023-08-02 03:23:06,451][flwr][INFO] - evaluate_round 27: no clients selected, cancel
+[2023-08-02 03:23:06,451][flwr][DEBUG] - fit_round 28: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:07,251][flwr][DEBUG] - fit_round 28 received 10 results and 0 failures
+[2023-08-02 03:23:08,111][flwr][INFO] - fit progress: (28, 0.17327796714156865, {'accuracy': 0.5251}, 52.94140310998773)
+[2023-08-02 03:23:08,111][flwr][INFO] - evaluate_round 28: no clients selected, cancel
+[2023-08-02 03:23:08,112][flwr][DEBUG] - fit_round 29: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:09,136][flwr][DEBUG] - fit_round 29 received 10 results and 0 failures
+[2023-08-02 03:23:09,988][flwr][INFO] - fit progress: (29, 0.10208167484626174, {'accuracy': 0.6497}, 54.81881024199538)
+[2023-08-02 03:23:09,989][flwr][INFO] - evaluate_round 29: no clients selected, cancel
+[2023-08-02 03:23:09,989][flwr][DEBUG] - fit_round 30: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:10,629][flwr][DEBUG] - fit_round 30 received 10 results and 0 failures
+[2023-08-02 03:23:11,499][flwr][INFO] - fit progress: (30, 0.06546912729963661, {'accuracy': 0.7625}, 56.329842631996144)
+[2023-08-02 03:23:11,500][flwr][INFO] - evaluate_round 30: no clients selected, cancel
+[2023-08-02 03:23:11,500][flwr][DEBUG] - fit_round 31: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:12,572][flwr][DEBUG] - fit_round 31 received 10 results and 0 failures
+[2023-08-02 03:23:13,520][flwr][INFO] - fit progress: (31, 0.11958980893045663, {'accuracy': 0.6054}, 58.35071947402321)
+[2023-08-02 03:23:13,521][flwr][INFO] - evaluate_round 31: no clients selected, cancel
+[2023-08-02 03:23:13,521][flwr][DEBUG] - fit_round 32: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:14,495][flwr][DEBUG] - fit_round 32 received 10 results and 0 failures
+[2023-08-02 03:23:15,395][flwr][INFO] - fit progress: (32, 0.07660448801964521, {'accuracy': 0.7098}, 60.22515706700506)
+[2023-08-02 03:23:15,395][flwr][INFO] - evaluate_round 32: no clients selected, cancel
+[2023-08-02 03:23:15,397][flwr][DEBUG] - fit_round 33: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:16,143][flwr][DEBUG] - fit_round 33 received 10 results and 0 failures
+[2023-08-02 03:23:16,990][flwr][INFO] - fit progress: (33, 0.05824472338221967, {'accuracy': 0.8}, 61.82025538699236)
+[2023-08-02 03:23:16,990][flwr][INFO] - evaluate_round 33: no clients selected, cancel
+[2023-08-02 03:23:16,990][flwr][DEBUG] - fit_round 34: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:17,677][flwr][DEBUG] - fit_round 34 received 10 results and 0 failures
+[2023-08-02 03:23:18,544][flwr][INFO] - fit progress: (34, 0.04886234850697219, {'accuracy': 0.852}, 63.373911970003974)
+[2023-08-02 03:23:18,544][flwr][INFO] - evaluate_round 34: no clients selected, cancel
+[2023-08-02 03:23:18,544][flwr][DEBUG] - fit_round 35: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:19,534][flwr][DEBUG] - fit_round 35 received 10 results and 0 failures
+[2023-08-02 03:23:20,370][flwr][INFO] - fit progress: (35, 0.13334819107949733, {'accuracy': 0.5971}, 65.20067174703581)
+[2023-08-02 03:23:20,371][flwr][INFO] - evaluate_round 35: no clients selected, cancel
+[2023-08-02 03:23:20,371][flwr][DEBUG] - fit_round 36: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:21,127][flwr][DEBUG] - fit_round 36 received 10 results and 0 failures
+[2023-08-02 03:23:22,001][flwr][INFO] - fit progress: (36, 0.08153341540656985, {'accuracy': 0.7169}, 66.83135202201083)
+[2023-08-02 03:23:22,001][flwr][INFO] - evaluate_round 36: no clients selected, cancel
+[2023-08-02 03:23:22,002][flwr][DEBUG] - fit_round 37: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:22,711][flwr][DEBUG] - fit_round 37 received 10 results and 0 failures
+[2023-08-02 03:23:23,590][flwr][INFO] - fit progress: (37, 0.0520238239210099, {'accuracy': 0.8339}, 68.42030659603188)
+[2023-08-02 03:23:23,590][flwr][INFO] - evaluate_round 37: no clients selected, cancel
+[2023-08-02 03:23:23,591][flwr][DEBUG] - fit_round 38: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:24,669][flwr][DEBUG] - fit_round 38 received 10 results and 0 failures
+[2023-08-02 03:23:25,557][flwr][INFO] - fit progress: (38, 0.06315364024434239, {'accuracy': 0.7892}, 70.38701250898885)
+[2023-08-02 03:23:25,557][flwr][INFO] - evaluate_round 38: no clients selected, cancel
+[2023-08-02 03:23:25,557][flwr][DEBUG] - fit_round 39: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:26,675][flwr][DEBUG] - fit_round 39 received 10 results and 0 failures
+[2023-08-02 03:23:27,568][flwr][INFO] - fit progress: (39, 0.07314758633114397, {'accuracy': 0.7386}, 72.39796200598357)
+[2023-08-02 03:23:27,568][flwr][INFO] - evaluate_round 39: no clients selected, cancel
+[2023-08-02 03:23:27,568][flwr][DEBUG] - fit_round 40: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:28,623][flwr][DEBUG] - fit_round 40 received 10 results and 0 failures
+[2023-08-02 03:23:29,515][flwr][INFO] - fit progress: (40, 0.0691242699990049, {'accuracy': 0.7529}, 74.34584705502493)
+[2023-08-02 03:23:29,516][flwr][INFO] - evaluate_round 40: no clients selected, cancel
+[2023-08-02 03:23:29,516][flwr][DEBUG] - fit_round 41: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:30,362][flwr][DEBUG] - fit_round 41 received 10 results and 0 failures
+[2023-08-02 03:23:31,565][flwr][INFO] - fit progress: (41, 0.05813853919263929, {'accuracy': 0.7951}, 76.39571687398711)
+[2023-08-02 03:23:31,566][flwr][INFO] - evaluate_round 41: no clients selected, cancel
+[2023-08-02 03:23:31,566][flwr][DEBUG] - fit_round 42: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:32,452][flwr][DEBUG] - fit_round 42 received 10 results and 0 failures
+[2023-08-02 03:23:33,394][flwr][INFO] - fit progress: (42, 0.07915614658519626, {'accuracy': 0.7174}, 78.22402776603121)
+[2023-08-02 03:23:33,394][flwr][INFO] - evaluate_round 42: no clients selected, cancel
+[2023-08-02 03:23:33,394][flwr][DEBUG] - fit_round 43: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:34,148][flwr][DEBUG] - fit_round 43 received 10 results and 0 failures
+[2023-08-02 03:23:35,073][flwr][INFO] - fit progress: (43, 0.05720957533027977, {'accuracy': 0.7976}, 79.90340730402386)
+[2023-08-02 03:23:35,073][flwr][INFO] - evaluate_round 43: no clients selected, cancel
+[2023-08-02 03:23:35,074][flwr][DEBUG] - fit_round 44: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:35,893][flwr][DEBUG] - fit_round 44 received 10 results and 0 failures
+[2023-08-02 03:23:36,752][flwr][INFO] - fit progress: (44, 0.13180760526806115, {'accuracy': 0.5943}, 81.5824746870203)
+[2023-08-02 03:23:36,752][flwr][INFO] - evaluate_round 44: no clients selected, cancel
+[2023-08-02 03:23:36,753][flwr][DEBUG] - fit_round 45: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:37,581][flwr][DEBUG] - fit_round 45 received 10 results and 0 failures
+[2023-08-02 03:23:38,464][flwr][INFO] - fit progress: (45, 0.06954286937788129, {'accuracy': 0.7698}, 83.29482687503332)
+[2023-08-02 03:23:38,465][flwr][INFO] - evaluate_round 45: no clients selected, cancel
+[2023-08-02 03:23:38,465][flwr][DEBUG] - fit_round 46: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:39,104][flwr][DEBUG] - fit_round 46 received 10 results and 0 failures
+[2023-08-02 03:23:40,002][flwr][INFO] - fit progress: (46, 0.06435105676539242, {'accuracy': 0.7858}, 84.83229855599348)
+[2023-08-02 03:23:40,002][flwr][INFO] - evaluate_round 46: no clients selected, cancel
+[2023-08-02 03:23:40,002][flwr][DEBUG] - fit_round 47: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:40,928][flwr][DEBUG] - fit_round 47 received 10 results and 0 failures
+[2023-08-02 03:23:41,760][flwr][INFO] - fit progress: (47, 0.08279408567175268, {'accuracy': 0.7125}, 86.59076232102234)
+[2023-08-02 03:23:41,761][flwr][INFO] - evaluate_round 47: no clients selected, cancel
+[2023-08-02 03:23:41,761][flwr][DEBUG] - fit_round 48: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:42,663][flwr][DEBUG] - fit_round 48 received 10 results and 0 failures
+[2023-08-02 03:23:43,519][flwr][INFO] - fit progress: (48, 0.11014726287014782, {'accuracy': 0.6287}, 88.34931586601306)
+[2023-08-02 03:23:43,519][flwr][INFO] - evaluate_round 48: no clients selected, cancel
+[2023-08-02 03:23:43,520][flwr][DEBUG] - fit_round 49: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:44,605][flwr][DEBUG] - fit_round 49 received 10 results and 0 failures
+[2023-08-02 03:23:45,447][flwr][INFO] - fit progress: (49, 0.16646489406973122, {'accuracy': 0.5741}, 90.27687917003641)
+[2023-08-02 03:23:45,447][flwr][INFO] - evaluate_round 49: no clients selected, cancel
+[2023-08-02 03:23:45,447][flwr][DEBUG] - fit_round 50: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:46,054][flwr][DEBUG] - fit_round 50 received 10 results and 0 failures
+[2023-08-02 03:23:46,935][flwr][INFO] - fit progress: (50, 0.05859067152626812, {'accuracy': 0.7974}, 91.76513705198886)
+[2023-08-02 03:23:46,935][flwr][INFO] - evaluate_round 50: no clients selected, cancel
+[2023-08-02 03:23:46,938][flwr][DEBUG] - fit_round 51: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:47,661][flwr][DEBUG] - fit_round 51 received 10 results and 0 failures
+[2023-08-02 03:23:48,543][flwr][INFO] - fit progress: (51, 0.060519017341919244, {'accuracy': 0.7879}, 93.37378242000705)
+[2023-08-02 03:23:48,544][flwr][INFO] - evaluate_round 51: no clients selected, cancel
+[2023-08-02 03:23:48,544][flwr][DEBUG] - fit_round 52: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:50,025][flwr][DEBUG] - fit_round 52 received 10 results and 0 failures
+[2023-08-02 03:23:50,900][flwr][INFO] - fit progress: (52, 0.07064332572929562, {'accuracy': 0.7584}, 95.73010865203105)
+[2023-08-02 03:23:50,900][flwr][INFO] - evaluate_round 52: no clients selected, cancel
+[2023-08-02 03:23:50,900][flwr][DEBUG] - fit_round 53: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:51,557][flwr][DEBUG] - fit_round 53 received 10 results and 0 failures
+[2023-08-02 03:23:52,392][flwr][INFO] - fit progress: (53, 0.06653812149353325, {'accuracy': 0.7739}, 97.22211046901066)
+[2023-08-02 03:23:52,392][flwr][INFO] - evaluate_round 53: no clients selected, cancel
+[2023-08-02 03:23:52,392][flwr][DEBUG] - fit_round 54: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:53,259][flwr][DEBUG] - fit_round 54 received 10 results and 0 failures
+[2023-08-02 03:23:54,187][flwr][INFO] - fit progress: (54, 0.07940025164932013, {'accuracy': 0.7336}, 99.01777955103898)
+[2023-08-02 03:23:54,188][flwr][INFO] - evaluate_round 54: no clients selected, cancel
+[2023-08-02 03:23:54,188][flwr][DEBUG] - fit_round 55: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:54,853][flwr][DEBUG] - fit_round 55 received 10 results and 0 failures
+[2023-08-02 03:23:55,769][flwr][INFO] - fit progress: (55, 0.05052843676693738, {'accuracy': 0.8345}, 100.59913930902258)
+[2023-08-02 03:23:55,769][flwr][INFO] - evaluate_round 55: no clients selected, cancel
+[2023-08-02 03:23:55,769][flwr][DEBUG] - fit_round 56: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:56,775][flwr][DEBUG] - fit_round 56 received 10 results and 0 failures
+[2023-08-02 03:23:57,899][flwr][INFO] - fit progress: (56, 0.07326883437894284, {'accuracy': 0.7595}, 102.72945159999654)
+[2023-08-02 03:23:57,899][flwr][INFO] - evaluate_round 56: no clients selected, cancel
+[2023-08-02 03:23:57,900][flwr][DEBUG] - fit_round 57: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:23:58,631][flwr][DEBUG] - fit_round 57 received 10 results and 0 failures
+[2023-08-02 03:23:59,532][flwr][INFO] - fit progress: (57, 0.045594333370029924, {'accuracy': 0.8578}, 104.36236723000184)
+[2023-08-02 03:23:59,532][flwr][INFO] - evaluate_round 57: no clients selected, cancel
+[2023-08-02 03:23:59,533][flwr][DEBUG] - fit_round 58: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:00,541][flwr][DEBUG] - fit_round 58 received 10 results and 0 failures
+[2023-08-02 03:24:01,856][flwr][INFO] - fit progress: (58, 0.07363407028242945, {'accuracy': 0.7424}, 106.68612818303518)
+[2023-08-02 03:24:01,856][flwr][INFO] - evaluate_round 58: no clients selected, cancel
+[2023-08-02 03:24:01,856][flwr][DEBUG] - fit_round 59: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:02,799][flwr][DEBUG] - fit_round 59 received 10 results and 0 failures
+[2023-08-02 03:24:03,689][flwr][INFO] - fit progress: (59, 0.05579693427477032, {'accuracy': 0.8049}, 108.51938849198632)
+[2023-08-02 03:24:03,689][flwr][INFO] - evaluate_round 59: no clients selected, cancel
+[2023-08-02 03:24:03,690][flwr][DEBUG] - fit_round 60: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:04,484][flwr][DEBUG] - fit_round 60 received 10 results and 0 failures
+[2023-08-02 03:24:05,357][flwr][INFO] - fit progress: (60, 0.06629675770662725, {'accuracy': 0.7778}, 110.18777328403667)
+[2023-08-02 03:24:05,358][flwr][INFO] - evaluate_round 60: no clients selected, cancel
+[2023-08-02 03:24:05,358][flwr][DEBUG] - fit_round 61: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:06,833][flwr][DEBUG] - fit_round 61 received 10 results and 0 failures
+[2023-08-02 03:24:07,710][flwr][INFO] - fit progress: (61, 0.2756016839146614, {'accuracy': 0.3755}, 112.5403759360197)
+[2023-08-02 03:24:07,710][flwr][INFO] - evaluate_round 61: no clients selected, cancel
+[2023-08-02 03:24:07,712][flwr][DEBUG] - fit_round 62: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:08,402][flwr][DEBUG] - fit_round 62 received 10 results and 0 failures
+[2023-08-02 03:24:09,274][flwr][INFO] - fit progress: (62, 0.09504068745672703, {'accuracy': 0.6806}, 114.10440407699207)
+[2023-08-02 03:24:09,274][flwr][INFO] - evaluate_round 62: no clients selected, cancel
+[2023-08-02 03:24:09,275][flwr][DEBUG] - fit_round 63: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:10,032][flwr][DEBUG] - fit_round 63 received 10 results and 0 failures
+[2023-08-02 03:24:10,908][flwr][INFO] - fit progress: (63, 0.07063544531557708, {'accuracy': 0.7773}, 115.73787512100535)
+[2023-08-02 03:24:10,908][flwr][INFO] - evaluate_round 63: no clients selected, cancel
+[2023-08-02 03:24:10,908][flwr][DEBUG] - fit_round 64: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:11,558][flwr][DEBUG] - fit_round 64 received 10 results and 0 failures
+[2023-08-02 03:24:12,432][flwr][INFO] - fit progress: (64, 0.07951667676120996, {'accuracy': 0.7276}, 117.2621879419894)
+[2023-08-02 03:24:12,432][flwr][INFO] - evaluate_round 64: no clients selected, cancel
+[2023-08-02 03:24:12,432][flwr][DEBUG] - fit_round 65: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:13,371][flwr][DEBUG] - fit_round 65 received 10 results and 0 failures
+[2023-08-02 03:24:14,266][flwr][INFO] - fit progress: (65, 0.08094625924900174, {'accuracy': 0.7324}, 119.09632360003889)
+[2023-08-02 03:24:14,266][flwr][INFO] - evaluate_round 65: no clients selected, cancel
+[2023-08-02 03:24:14,267][flwr][DEBUG] - fit_round 66: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:14,890][flwr][DEBUG] - fit_round 66 received 10 results and 0 failures
+[2023-08-02 03:24:15,773][flwr][INFO] - fit progress: (66, 0.06629317001020536, {'accuracy': 0.7742}, 120.60348432301544)
+[2023-08-02 03:24:15,773][flwr][INFO] - evaluate_round 66: no clients selected, cancel
+[2023-08-02 03:24:15,774][flwr][DEBUG] - fit_round 67: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:16,470][flwr][DEBUG] - fit_round 67 received 10 results and 0 failures
+[2023-08-02 03:24:17,313][flwr][INFO] - fit progress: (67, 0.07149968640562147, {'accuracy': 0.728}, 122.14335542201297)
+[2023-08-02 03:24:17,313][flwr][INFO] - evaluate_round 67: no clients selected, cancel
+[2023-08-02 03:24:17,314][flwr][DEBUG] - fit_round 68: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:18,088][flwr][DEBUG] - fit_round 68 received 10 results and 0 failures
+[2023-08-02 03:24:18,937][flwr][INFO] - fit progress: (68, 0.0672658471511677, {'accuracy': 0.7657}, 123.76701573602622)
+[2023-08-02 03:24:18,937][flwr][INFO] - evaluate_round 68: no clients selected, cancel
+[2023-08-02 03:24:18,937][flwr][DEBUG] - fit_round 69: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:19,519][flwr][DEBUG] - fit_round 69 received 10 results and 0 failures
+[2023-08-02 03:24:20,356][flwr][INFO] - fit progress: (69, 0.05359450091533363, {'accuracy': 0.8197}, 125.18587509199278)
+[2023-08-02 03:24:20,356][flwr][INFO] - evaluate_round 69: no clients selected, cancel
+[2023-08-02 03:24:20,356][flwr][DEBUG] - fit_round 70: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:21,069][flwr][DEBUG] - fit_round 70 received 10 results and 0 failures
+[2023-08-02 03:24:21,935][flwr][INFO] - fit progress: (70, 0.057173097674362364, {'accuracy': 0.8027}, 126.76576827798272)
+[2023-08-02 03:24:21,936][flwr][INFO] - evaluate_round 70: no clients selected, cancel
+[2023-08-02 03:24:21,936][flwr][DEBUG] - fit_round 71: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:26,652][flwr][DEBUG] - fit_round 71 received 10 results and 0 failures
+[2023-08-02 03:24:27,495][flwr][INFO] - fit progress: (71, 0.2259454010426998, {'accuracy': 0.3944}, 132.32565215002978)
+[2023-08-02 03:24:27,496][flwr][INFO] - evaluate_round 71: no clients selected, cancel
+[2023-08-02 03:24:27,496][flwr][DEBUG] - fit_round 72: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:28,411][flwr][DEBUG] - fit_round 72 received 10 results and 0 failures
+[2023-08-02 03:24:29,359][flwr][INFO] - fit progress: (72, 0.1307824771925807, {'accuracy': 0.5724}, 134.18921083502937)
+[2023-08-02 03:24:29,359][flwr][INFO] - evaluate_round 72: no clients selected, cancel
+[2023-08-02 03:24:29,359][flwr][DEBUG] - fit_round 73: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:31,445][flwr][DEBUG] - fit_round 73 received 10 results and 0 failures
+[2023-08-02 03:24:32,291][flwr][INFO] - fit progress: (73, 0.25939756601154806, {'accuracy': 0.3691}, 137.12109497899655)
+[2023-08-02 03:24:32,291][flwr][INFO] - evaluate_round 73: no clients selected, cancel
+[2023-08-02 03:24:32,291][flwr][DEBUG] - fit_round 74: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:32,942][flwr][DEBUG] - fit_round 74 received 10 results and 0 failures
+[2023-08-02 03:24:33,799][flwr][INFO] - fit progress: (74, 0.08894297963753342, {'accuracy': 0.6872}, 138.6288611019845)
+[2023-08-02 03:24:33,799][flwr][INFO] - evaluate_round 74: no clients selected, cancel
+[2023-08-02 03:24:33,799][flwr][DEBUG] - fit_round 75: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:34,901][flwr][DEBUG] - fit_round 75 received 10 results and 0 failures
+[2023-08-02 03:24:35,795][flwr][INFO] - fit progress: (75, 0.06474033847786487, {'accuracy': 0.7818}, 140.62490787601564)
+[2023-08-02 03:24:35,795][flwr][INFO] - evaluate_round 75: no clients selected, cancel
+[2023-08-02 03:24:35,795][flwr][DEBUG] - fit_round 76: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:37,161][flwr][DEBUG] - fit_round 76 received 10 results and 0 failures
+[2023-08-02 03:24:38,022][flwr][INFO] - fit progress: (76, 0.086375354966335, {'accuracy': 0.7336}, 142.85232415201608)
+[2023-08-02 03:24:38,022][flwr][INFO] - evaluate_round 76: no clients selected, cancel
+[2023-08-02 03:24:38,023][flwr][DEBUG] - fit_round 77: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:38,951][flwr][DEBUG] - fit_round 77 received 10 results and 0 failures
+[2023-08-02 03:24:39,831][flwr][INFO] - fit progress: (77, 0.050589257697947324, {'accuracy': 0.844}, 144.66160466801375)
+[2023-08-02 03:24:39,831][flwr][INFO] - evaluate_round 77: no clients selected, cancel
+[2023-08-02 03:24:39,832][flwr][DEBUG] - fit_round 78: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:40,680][flwr][DEBUG] - fit_round 78 received 10 results and 0 failures
+[2023-08-02 03:24:41,588][flwr][INFO] - fit progress: (78, 0.0657434517659247, {'accuracy': 0.7751}, 146.41796574601904)
+[2023-08-02 03:24:41,588][flwr][INFO] - evaluate_round 78: no clients selected, cancel
+[2023-08-02 03:24:41,588][flwr][DEBUG] - fit_round 79: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:42,258][flwr][DEBUG] - fit_round 79 received 10 results and 0 failures
+[2023-08-02 03:24:43,113][flwr][INFO] - fit progress: (79, 0.05674948965013027, {'accuracy': 0.8138}, 147.9433823270374)
+[2023-08-02 03:24:43,113][flwr][INFO] - evaluate_round 79: no clients selected, cancel
+[2023-08-02 03:24:43,116][flwr][DEBUG] - fit_round 80: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:43,808][flwr][DEBUG] - fit_round 80 received 10 results and 0 failures
+[2023-08-02 03:24:44,656][flwr][INFO] - fit progress: (80, 0.05224945836365223, {'accuracy': 0.8163}, 149.48683205002453)
+[2023-08-02 03:24:44,657][flwr][INFO] - evaluate_round 80: no clients selected, cancel
+[2023-08-02 03:24:44,657][flwr][DEBUG] - fit_round 81: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:46,043][flwr][DEBUG] - fit_round 81 received 10 results and 0 failures
+[2023-08-02 03:24:46,927][flwr][INFO] - fit progress: (81, 0.09764153246432543, {'accuracy': 0.6845}, 151.75711217703065)
+[2023-08-02 03:24:46,927][flwr][INFO] - evaluate_round 81: no clients selected, cancel
+[2023-08-02 03:24:46,927][flwr][DEBUG] - fit_round 82: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:47,576][flwr][DEBUG] - fit_round 82 received 10 results and 0 failures
+[2023-08-02 03:24:48,440][flwr][INFO] - fit progress: (82, 0.0511533282360062, {'accuracy': 0.8388}, 153.27032705099555)
+[2023-08-02 03:24:48,440][flwr][INFO] - evaluate_round 82: no clients selected, cancel
+[2023-08-02 03:24:48,441][flwr][DEBUG] - fit_round 83: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:49,073][flwr][DEBUG] - fit_round 83 received 10 results and 0 failures
+[2023-08-02 03:24:49,995][flwr][INFO] - fit progress: (83, 0.06469863715581596, {'accuracy': 0.7843}, 154.82534815801773)
+[2023-08-02 03:24:49,995][flwr][INFO] - evaluate_round 83: no clients selected, cancel
+[2023-08-02 03:24:49,996][flwr][DEBUG] - fit_round 84: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:50,815][flwr][DEBUG] - fit_round 84 received 10 results and 0 failures
+[2023-08-02 03:24:51,671][flwr][INFO] - fit progress: (84, 0.049468325999751685, {'accuracy': 0.8471}, 156.50170390098356)
+[2023-08-02 03:24:51,672][flwr][INFO] - evaluate_round 84: no clients selected, cancel
+[2023-08-02 03:24:51,672][flwr][DEBUG] - fit_round 85: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:52,986][flwr][DEBUG] - fit_round 85 received 10 results and 0 failures
+[2023-08-02 03:24:53,832][flwr][INFO] - fit progress: (85, 0.06639975866898894, {'accuracy': 0.7921}, 158.66254489298444)
+[2023-08-02 03:24:53,832][flwr][INFO] - evaluate_round 85: no clients selected, cancel
+[2023-08-02 03:24:53,833][flwr][DEBUG] - fit_round 86: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:54,482][flwr][DEBUG] - fit_round 86 received 10 results and 0 failures
+[2023-08-02 03:24:55,333][flwr][INFO] - fit progress: (86, 0.053659574763290585, {'accuracy': 0.8204}, 160.16370848403312)
+[2023-08-02 03:24:55,334][flwr][INFO] - evaluate_round 86: no clients selected, cancel
+[2023-08-02 03:24:55,334][flwr][DEBUG] - fit_round 87: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:56,079][flwr][DEBUG] - fit_round 87 received 10 results and 0 failures
+[2023-08-02 03:24:56,982][flwr][INFO] - fit progress: (87, 0.048246396021079274, {'accuracy': 0.8395}, 161.81188328802818)
+[2023-08-02 03:24:56,982][flwr][INFO] - evaluate_round 87: no clients selected, cancel
+[2023-08-02 03:24:56,982][flwr][DEBUG] - fit_round 88: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:57,683][flwr][DEBUG] - fit_round 88 received 10 results and 0 failures
+[2023-08-02 03:24:58,587][flwr][INFO] - fit progress: (88, 0.04214890872780234, {'accuracy': 0.8704}, 163.41735710098874)
+[2023-08-02 03:24:58,587][flwr][INFO] - evaluate_round 88: no clients selected, cancel
+[2023-08-02 03:24:58,588][flwr][DEBUG] - fit_round 89: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:24:59,228][flwr][DEBUG] - fit_round 89 received 10 results and 0 failures
+[2023-08-02 03:25:00,094][flwr][INFO] - fit progress: (89, 0.04026629269989208, {'accuracy': 0.8758}, 164.9244515200262)
+[2023-08-02 03:25:00,094][flwr][INFO] - evaluate_round 89: no clients selected, cancel
+[2023-08-02 03:25:00,095][flwr][DEBUG] - fit_round 90: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:25:00,795][flwr][DEBUG] - fit_round 90 received 10 results and 0 failures
+[2023-08-02 03:25:01,647][flwr][INFO] - fit progress: (90, 0.06565620291475206, {'accuracy': 0.7675}, 166.47769198199967)
+[2023-08-02 03:25:01,648][flwr][INFO] - evaluate_round 90: no clients selected, cancel
+[2023-08-02 03:25:01,648][flwr][DEBUG] - fit_round 91: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:25:02,240][flwr][DEBUG] - fit_round 91 received 10 results and 0 failures
+[2023-08-02 03:25:03,123][flwr][INFO] - fit progress: (91, 0.04879846042478457, {'accuracy': 0.83}, 167.95324280002387)
+[2023-08-02 03:25:03,123][flwr][INFO] - evaluate_round 91: no clients selected, cancel
+[2023-08-02 03:25:03,123][flwr][DEBUG] - fit_round 92: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:25:03,830][flwr][DEBUG] - fit_round 92 received 10 results and 0 failures
+[2023-08-02 03:25:04,732][flwr][INFO] - fit progress: (92, 0.06045944361919537, {'accuracy': 0.7847}, 169.56258621200686)
+[2023-08-02 03:25:04,733][flwr][INFO] - evaluate_round 92: no clients selected, cancel
+[2023-08-02 03:25:04,733][flwr][DEBUG] - fit_round 93: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:25:05,404][flwr][DEBUG] - fit_round 93 received 10 results and 0 failures
+[2023-08-02 03:25:06,345][flwr][INFO] - fit progress: (93, 0.0607667837026529, {'accuracy': 0.7718}, 171.17556232202332)
+[2023-08-02 03:25:06,345][flwr][INFO] - evaluate_round 93: no clients selected, cancel
+[2023-08-02 03:25:06,346][flwr][DEBUG] - fit_round 94: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:25:07,248][flwr][DEBUG] - fit_round 94 received 10 results and 0 failures
+[2023-08-02 03:25:08,089][flwr][INFO] - fit progress: (94, 0.05670433728247881, {'accuracy': 0.8067}, 172.91886010201415)
+[2023-08-02 03:25:08,089][flwr][INFO] - evaluate_round 94: no clients selected, cancel
+[2023-08-02 03:25:08,089][flwr][DEBUG] - fit_round 95: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:25:08,939][flwr][DEBUG] - fit_round 95 received 10 results and 0 failures
+[2023-08-02 03:25:09,806][flwr][INFO] - fit progress: (95, 0.056075479192100465, {'accuracy': 0.8118}, 174.63674089702545)
+[2023-08-02 03:25:09,807][flwr][INFO] - evaluate_round 95: no clients selected, cancel
+[2023-08-02 03:25:09,809][flwr][DEBUG] - fit_round 96: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:25:10,775][flwr][DEBUG] - fit_round 96 received 10 results and 0 failures
+[2023-08-02 03:25:11,615][flwr][INFO] - fit progress: (96, 0.05052845807690173, {'accuracy': 0.8404}, 176.44539925002027)
+[2023-08-02 03:25:11,615][flwr][INFO] - evaluate_round 96: no clients selected, cancel
+[2023-08-02 03:25:11,616][flwr][DEBUG] - fit_round 97: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:25:12,304][flwr][DEBUG] - fit_round 97 received 10 results and 0 failures
+[2023-08-02 03:25:13,237][flwr][INFO] - fit progress: (97, 0.05764924901090562, {'accuracy': 0.7981}, 178.0674928940134)
+[2023-08-02 03:25:13,237][flwr][INFO] - evaluate_round 97: no clients selected, cancel
+[2023-08-02 03:25:13,238][flwr][DEBUG] - fit_round 98: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:25:13,947][flwr][DEBUG] - fit_round 98 received 10 results and 0 failures
+[2023-08-02 03:25:14,793][flwr][INFO] - fit progress: (98, 0.05691381175313145, {'accuracy': 0.8006}, 179.62313788401661)
+[2023-08-02 03:25:14,793][flwr][INFO] - evaluate_round 98: no clients selected, cancel
+[2023-08-02 03:25:14,793][flwr][DEBUG] - fit_round 99: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:25:15,536][flwr][DEBUG] - fit_round 99 received 10 results and 0 failures
+[2023-08-02 03:25:16,388][flwr][INFO] - fit progress: (99, 0.07133249967060983, {'accuracy': 0.7543}, 181.21840602601878)
+[2023-08-02 03:25:16,388][flwr][INFO] - evaluate_round 99: no clients selected, cancel
+[2023-08-02 03:25:16,389][flwr][DEBUG] - fit_round 100: strategy sampled 10 clients (out of 1000)
+[2023-08-02 03:25:17,877][flwr][DEBUG] - fit_round 100 received 10 results and 0 failures
+[2023-08-02 03:25:18,728][flwr][INFO] - fit progress: (100, 0.14352599140107633, {'accuracy': 0.5902}, 183.55857138801366)
+[2023-08-02 03:25:18,728][flwr][INFO] - evaluate_round 100: no clients selected, cancel
+[2023-08-02 03:25:18,729][flwr][INFO] - FL finished in 183.55890909500886
+[2023-08-02 03:25:18,729][flwr][INFO] - app_fit: losses_distributed []
+[2023-08-02 03:25:18,729][flwr][INFO] - app_fit: metrics_distributed {}
+[2023-08-02 03:25:18,729][flwr][INFO] - app_fit: losses_centralized [(0, 0.25226967413425444), (1, 0.42206174051761625), (2, 0.20544009860157966), (3, 0.1772584744513035), (4, 0.16162356524169444), (5, 0.1162346527248621), (6, 0.14172354870736598), (7, 0.11278121151328087), (8, 0.09068175483196973), (9, 0.09755906308740378), (10, 0.09044594259113073), (11, 0.12109501513242722), (12, 0.2478223524570465), (13, 0.17511593127548694), (14, 0.08111341508328915), (15, 0.11510132972151041), (16, 0.08913394016698002), (17, 0.07424074913784862), (18, 0.06947270640432834), (19, 0.06532439883127808), (20, 0.09330825152024627), (21, 0.12372713502719998), (22, 0.06748923404552043), (23, 0.06536988556943833), (24, 0.05610476633366197), (25, 0.05722131968419999), (26, 0.10425416984409094), (27, 0.07461113843806089), (28, 0.17327796714156865), (29, 0.10208167484626174), (30, 0.06546912729963661), (31, 0.11958980893045663), (32, 0.07660448801964521), (33, 0.05824472338221967), (34, 0.04886234850697219), (35, 0.13334819107949733), (36, 0.08153341540656985), (37, 0.0520238239210099), (38, 0.06315364024434239), (39, 0.07314758633114397), (40, 0.0691242699990049), (41, 0.05813853919263929), (42, 0.07915614658519626), (43, 0.05720957533027977), (44, 0.13180760526806115), (45, 0.06954286937788129), (46, 0.06435105676539242), (47, 0.08279408567175268), (48, 0.11014726287014782), (49, 0.16646489406973122), (50, 0.05859067152626812), (51, 0.060519017341919244), (52, 0.07064332572929562), (53, 0.06653812149353325), (54, 0.07940025164932013), (55, 0.05052843676693738), (56, 0.07326883437894284), (57, 0.045594333370029924), (58, 0.07363407028242945), (59, 0.05579693427477032), (60, 0.06629675770662725), (61, 0.2756016839146614), (62, 0.09504068745672703), (63, 0.07063544531557708), (64, 0.07951667676120996), (65, 0.08094625924900174), (66, 0.06629317001020536), (67, 0.07149968640562147), (68, 0.0672658471511677), (69, 0.05359450091533363), (70, 0.057173097674362364), (71, 0.2259454010426998), (72, 0.1307824771925807), (73, 0.25939756601154806), (74, 0.08894297963753342), (75, 0.06474033847786487), (76, 0.086375354966335), (77, 0.050589257697947324), (78, 0.0657434517659247), (79, 0.05674948965013027), (80, 0.05224945836365223), (81, 0.09764153246432543), (82, 0.0511533282360062), (83, 0.06469863715581596), (84, 0.049468325999751685), (85, 0.06639975866898894), (86, 0.053659574763290585), (87, 0.048246396021079274), (88, 0.04214890872780234), (89, 0.04026629269989208), (90, 0.06565620291475206), (91, 0.04879846042478457), (92, 0.06045944361919537), (93, 0.0607667837026529), (94, 0.05670433728247881), (95, 0.056075479192100465), (96, 0.05052845807690173), (97, 0.05764924901090562), (98, 0.05691381175313145), (99, 0.07133249967060983), (100, 0.14352599140107633)]
+[2023-08-02 03:25:18,729][flwr][INFO] - app_fit: metrics_centralized {'accuracy': [(0, 0.0541), (1, 0.1964), (2, 0.3481), (3, 0.3998), (4, 0.4707), (5, 0.614), (6, 0.4737), (7, 0.5687), (8, 0.6971), (9, 0.669), (10, 0.6714), (11, 0.5696), (12, 0.3224), (13, 0.3842), (14, 0.7186), (15, 0.5456), (16, 0.6855), (17, 0.7293), (18, 0.7599), (19, 0.7861), (20, 0.6842), (21, 0.5947), (22, 0.7802), (23, 0.7663), (24, 0.8136), (25, 0.8079), (26, 0.6227), (27, 0.7254), (28, 0.5251), (29, 0.6497), (30, 0.7625), (31, 0.6054), (32, 0.7098), (33, 0.8), (34, 0.852), (35, 0.5971), (36, 0.7169), (37, 0.8339), (38, 0.7892), (39, 0.7386), (40, 0.7529), (41, 0.7951), (42, 0.7174), (43, 0.7976), (44, 0.5943), (45, 0.7698), (46, 0.7858), (47, 0.7125), (48, 0.6287), (49, 0.5741), (50, 0.7974), (51, 0.7879), (52, 0.7584), (53, 0.7739), (54, 0.7336), (55, 0.8345), (56, 0.7595), (57, 0.8578), (58, 0.7424), (59, 0.8049), (60, 0.7778), (61, 0.3755), (62, 0.6806), (63, 0.7773), (64, 0.7276), (65, 0.7324), (66, 0.7742), (67, 0.728), (68, 0.7657), (69, 0.8197), (70, 0.8027), (71, 0.3944), (72, 0.5724), (73, 0.3691), (74, 0.6872), (75, 0.7818), (76, 0.7336), (77, 0.844), (78, 0.7751), (79, 0.8138), (80, 0.8163), (81, 0.6845), (82, 0.8388), (83, 0.7843), (84, 0.8471), (85, 0.7921), (86, 0.8204), (87, 0.8395), (88, 0.8704), (89, 0.8758), (90, 0.7675), (91, 0.83), (92, 0.7847), (93, 0.7718), (94, 0.8067), (95, 0.8118), (96, 0.8404), (97, 0.7981), (98, 0.8006), (99, 0.7543), (100, 0.5902)]}

@@ -1,125 +1,123 @@
-#----------------------------External Imports----------------------------
-import argparse
+"""Runs CNN federated learning for MNIST dataset."""
 import os
 import sys
-import random
 import flwr as fl
-from flwr.common.typing import Scalar
-import ray
-import torch
-from torch.utils.tensorboard import SummaryWriter
-import torchvision
-import numpy as np
-from collections import OrderedDict
-from typing import Dict, Callable, Optional, Tuple, List
-
-if torch.cuda.is_available():
-    DEVICE = torch.device("cuda")
-    print(
-    f"Training on {DEVICE} using PyTorch {torch.__version__} and Flower {fl.__version__}"
-    )
-else: DEVICE = torch.device('cpu')
+import hydra
+from hydra.core.hydra_config import HydraConfig
+from hydra.utils import instantiate
+from omegaconf import DictConfig, OmegaConf
 
 #----Insert main project directory so that we can resolve the src imports-------
 src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 sys.path.insert(0, src_path)
 
-#----------------------------Internal Imports-----------------------------
-from src.utils import train, test, get_params, set_params, importer, set_random_seed
-from src.script.parse_config import get_variables
-from src.dataset_utils import get_cifar_10, do_fl_partitioning, get_dataloader
-from src.client import get_FlowerClient_class, get_FlwrClient_class
-from src.federated_dataset import load_data
-from src import PATH, GOD_CLIENT_NAME
-#-------------------------------Setup parser------------------------------
-parser = argparse.ArgumentParser(description="Flower Simulation with PyTorch")
-parser.add_argument('--config',
-                    help='name of configuration file (without .toml)',
-                    type=str,
-                    default='mock')
+from src import PATH_src
+from src import client, server, utils
+from src.dataset import load_datasets
+from src.utils import save_results_as_pickle
+
+@hydra.main(config_path=PATH_src['conf'], config_name="config", version_base=None)
+def main(cfg: DictConfig) -> None:
+    """Main function to run CNN federated learning on MNIST.
+
+    Parameters
+    ----------
+    cfg : DictConfig
+        An omegaconf object that stores the hydra config.
+    """
+
+    # print config structured as YAML
+    print(OmegaConf.to_yaml(cfg))
+
+    # partition dataset and get dataloaders
+    trainloaders, valloaders, testloader = load_datasets(
+        config=cfg.dataset_config,
+        num_clients=cfg.num_clients,
+        batch_size=cfg.batch_size,
+    )
+
+    # prepare function that will be used to spawn each client
+    client_fn = client.gen_client_fn(
+        num_clients=cfg.num_clients,
+        num_epochs=cfg.num_epochs,
+        trainloaders=trainloaders,
+        valloaders=valloaders,
+        num_rounds=cfg.num_rounds,
+        learning_rate=cfg.learning_rate,
+        stragglers=cfg.stragglers_fraction,
+        model=cfg.model,
+    )
+
+    # get function that will executed by the strategy's evaluate() method
+    # Set server's device
+    device = cfg.server_device
+    evaluate_fn = server.gen_evaluate_fn(testloader, device=device, model=cfg.model)
+
+    # get a function that will be used to construct the config that the client's
+    # fit() method will received
+    def get_on_fit_config():
+        def fit_config_fn(server_round: int):
+            # resolve and convert to python dict
+            fit_config = OmegaConf.to_container(cfg.fit_config, resolve=True)
+            fit_config["curr_round"] = server_round  # add round info
+            return fit_config
+
+        return fit_config_fn
+
+    # instantiate strategy according to config. Here we pass other arguments
+    # that are only defined at run time.
+    strategy = instantiate(
+        cfg.strategy,
+        evaluate_fn=evaluate_fn,
+        on_fit_config_fn=get_on_fit_config(),
+    )
+
+    # Start simulation
+    history = fl.simulation.start_simulation(
+        client_fn=client_fn,
+        num_clients=cfg.num_clients,
+        config=fl.server.ServerConfig(num_rounds=cfg.num_rounds),
+        client_resources={
+            "num_cpus": cfg.client_resources.num_cpus,
+            "num_gpus": cfg.client_resources.num_gpus,
+        },
+        strategy=strategy,
+    )
+
+    # Experiment completed. Now we save the results and
+    # generate plots using the `history`
+    print("................")
+    print(history)
+
+    # Hydra automatically creates an output directory
+    # Let's retrieve it and save some results there
+    save_path = HydraConfig.get().runtime.output_dir
+
+    # save results as a Python pickle using a file_path
+    # the directory created by Hydra for each run
+    save_results_as_pickle(history, file_path=save_path, extra_results={})
+
+    # plot results and include them in the readme
+    strategy_name = strategy.__class__.__name__
+    file_suffix: str = (
+        f"_{strategy_name}"
+        f"{'_iid' if cfg.dataset_config.iid else ''}"
+        f"{'_balanced' if cfg.dataset_config.balance else ''}"
+        f"{'_powerlaw' if cfg.dataset_config.power_law else ''}"
+        f"_C={cfg.num_clients}"
+        f"_B={cfg.batch_size}"
+        f"_E={cfg.num_epochs}"
+        f"_R={cfg.num_rounds}"
+        f"_mu={cfg.mu}"
+        f"_strag={cfg.stragglers_fraction}"
+    )
+
+    utils.plot_metric_from_history(
+        history,
+        save_path,
+        (file_suffix),
+    )
+
 
 if __name__ == "__main__":
-    #-----------------------------------Pipeline configuration, datasets, models-------------------
-    args = parser.parse_args()                         # parse input arguments
-    CONFIG = get_variables(args.config)                # Get toml config
-    set_random_seed(CONFIG['SEED'])                    # Set seed as in FedProx ppr
-    if DEVICE.type=='cuda':
-        client_resources = {'num_gpus': torch.cuda.device_count()}
-    else: client_resources = { "num_cpus": CONFIG['CPUS'] }
-    module = importer(CONFIG['AGGREGATOR'])            # src/Models/Relevant file aliased as module
-    model, datanode = module.load_models_datanodes(CONFIG['MODEL'],CONFIG['DATASET'].name) ## add ,CONFIG['IID'] as argument!!!
-
-    # -----------------------------------------Simulation functions-------------------------------
-    def get_evaluate_fn(testset, ) -> Callable[[fl.common.NDArrays], Optional[Tuple[float, float]]]:
-        """Return an evaluation function for centralized evaluation."""
-        def evaluate( server_round: int, parameters: fl.common.NDArrays, config: Dict[str, Scalar] ) -> Optional[Tuple[float, float]]:
-            """Use the entire CIFAR-10 test set for evaluation."""
-            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") # determine device
-            net = model()
-            set_params(net, parameters)
-            net.to(device)
-            testloader = torch.utils.data.DataLoader(testset, batch_size=CONFIG['BATCH_SIZE'])
-            loss, accuracy = test(net, testloader, device=device)
-
-            return loss, {"accuracy": accuracy} # return metrics
-
-        return evaluate
-
-    def fit_config(server_round: int) -> Dict[str, Scalar]:
-        """Return a configuration with static batch size and (local) epochs."""
-        config = {
-            "epochs": CONFIG['EPOCHS'],  # number of local epochs
-            "batch_size": CONFIG['BATCH_SIZE'],
-        }
-        return config
-
-    #------------------------------------Data preparation and client function---------------------------------------
-
-    if CONFIG['DATASET'].name.lower() in {'cifar10'}:
-        train_path, testset = get_cifar_10()
-        fed_dir = do_fl_partitioning(
-            train_path,
-            pool_size=CONFIG['NUM_CLIENTS'],            # use a large `alpha` to make it IID; a small value (e.g. 1) will make it non-IID
-            alpha=CONFIG['ALFA'],                       # This will create a new directory called "federated": in the directory where CIFAR-10 lives.
-            num_classes=CONFIG['DATASET'].num_classes,  # Inside it, there will be N=NUM_CLIENTS sub-directories each with its own train/set split.
-            val_ratio=CONFIG['VAL_SPLIT']
-        )
-        FlowerClient = get_FlowerClient_class(model, CONFIG)
-        def client_fn(cid: str): return FlowerClient(cid=cid, fed_dir_data=fed_dir, model_class=model)
-    else:
-        eval_client_names = [GOD_CLIENT_NAME]
-        testset = load_data(
-            client_names=eval_client_names,
-            train_test_split=CONFIG['VAL_SPLIT'],
-            dataset_name=CONFIG["DATASET"].name,
-            type="test",
-            min_no_samples=CONFIG["MIN_DATASET_SIZE"],
-            is_embedded=CONFIG["IS_EMBEDDED"],
-        )
-        print("centralized testset length: ", len(testset))
-        FlowerClient = get_FlwrClient_class(model, CONFIG)
-        def client_fn(cid:str): return FlowerClient(cid)
-    #------------------------------------------------Strategy-------------------------------------------------------
-
-    strategy = fl.server.strategy.FedAvg(
-        fraction_fit=CONFIG['FRAC_FIT'],                        # Sample _% of available clients for training round
-        fraction_evaluate=CONFIG['FRAC_EVALUATE'],              # Sample _% of available clients for evaluation round
-        min_fit_clients=CONFIG['MIN_FIT_CLIENTS'],              # Never sample less than _ clients for training
-        min_evaluate_clients=CONFIG['MIN_EVALUABLE_CLIENTS'],   # Never sample less than _ clients for evaluation
-        min_available_clients=CONFIG['MIN_AVAILABLE_CLIENTS'],  # Wait until _ clients are available
-        on_fit_config_fn=fit_config,                            #
-        evaluate_fn=get_evaluate_fn(testset),                   # centralised eval of global model
-
-    )
-
-    ray_init_args = {"include_dashboard": False}                # (optional) specify Ray config
-
-    fl.simulation.start_simulation(
-        client_fn=client_fn,
-        num_clients=CONFIG['NUM_CLIENTS'],
-        client_resources=client_resources,
-        config=fl.server.ServerConfig(num_rounds=CONFIG['NUM_ROUNDS']),
-        strategy=strategy,
-        ray_init_args=ray_init_args,
-    )
-
+    main()
