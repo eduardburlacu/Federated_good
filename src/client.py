@@ -15,6 +15,9 @@ from torch.utils.data import DataLoader
 from src.dataset import load_datasets
 from src.models import test, train
 
+from copy import deepcopy
+from src import federated_dataset
+from src.utils import set_random_seed
 
 class FlowerClient(
     fl.client.NumPyClient
@@ -176,3 +179,65 @@ def gen_client_fn(
         )
 
     return client_fn
+
+
+
+def get_FlwrClient_class(model, VARIABLES:Dict):
+    class FlwrClient(fl.client.NumPyClient):
+
+        model_class = model
+        train_test_split = VARIABLES['VAL_SPLIT']
+        batch_size = VARIABLES['BATCH_SIZE']
+        min_num_samples = VARIABLES['MIN_DATASET_SIZE']
+        dataset_name = VARIABLES['DATASET'].name.lower()
+        is_embedded = VARIABLES['IS_EMBEDDED']
+        properties: Dict[str, Scalar] = {"tensor_type": "torch.Tensor"}
+        def __init__(self, cid:str, plot_detailed_training=True):
+            self.cid = cid
+            self.net = None
+            self.device = torch.device( f"cuda:{int(cid) % torch.cuda.device_count()}" if torch.cuda.is_available() else "cpu")
+            self.plot_detailed_training = plot_detailed_training
+        def get_parameters(self, config):
+            return self.net.get_weights()
+        def set_parameters(self, params):
+            self.net.set_weights(params)
+        def fit(self, parameters, config):
+            if self.net is None: self.net = FlwrClient.model_class()
+            set_random_seed(VARIABLES['SEED'])
+            self.net.set_weights(parameters)
+            optimizer = torch.optim.SGD(self.net.parameters(), lr= config['learning rate'])
+            trainset = federated_dataset.load_data(
+                client_names=[config['client_name']],
+                train_test_split=self.train_test_split,
+                dataset_name= FlwrClient.dataset_name,
+                type="train",
+                min_no_samples = FlwrClient.min_num_samples,
+                is_embedded = FlwrClient.is_embedded
+            )
+            trainloader = DataLoader(trainset, FlwrClient.batch_size, shuffle=True)
+            if int(config['steps_per_epoch']) > 0:
+                n_steps = min(int(config['steps_per_epoch']), len(trainloader))
+            else:
+                n_steps = len(trainloader)
+            prev_global_params = deepcopy(list(self.net.parameters()))
+            prev_global_params = [p.to(self.device) for p in prev_global_params ]
+            self.net.train()
+            self.net.to(self.device)
+            for e in range(config['epochs']):
+                for local_step, data in trainloader:
+                    if local_step == n_steps: break
+                    optimizer.zero_grad()
+                    loss = self.net.train_step(data=data,
+                                        mu = float(config["mu"]),
+                                        old_params = prev_global_params )
+                    loss.backward()
+                    optimizer.step()
+                    step = (config['epoch_global'] - 1) * config['epochs'] * n_steps + config['epoch'] * n_steps + local_step
+                    self.net.to(torch.device("cpu"))
+            out_config ={} #### TO BE FILLED IN WHEN DOING STRATEGY
+            return self.net.get_weights(), len(trainset), out_config
+
+        def evaluate( self, parameters, config: Dict[str, Scalar]):
+            raise EnvironmentError('Client evaluation called when we expected server side evaluation.')
+
+    return FlwrClient

@@ -1,13 +1,26 @@
 """Contains utility functions for CNN FL on MNIST."""
 
+import os
 import pickle
 from pathlib import Path
 from secrets import token_hex
 from typing import Dict, Optional, Union
+import importlib.util
+
+import random
+import torch
 
 import matplotlib.pyplot as plt
 import numpy as np
 from flwr.server.history import History
+from src import PATH_src
+
+def set_random_seed(seed: int):
+    random.seed(1+seed)
+    np.random.seed(12 + seed)
+    torch.manual_seed(123 + seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(123 + seed) # Set seed for CUDA if available
 
 
 def plot_metric_from_history(
@@ -110,3 +123,10 @@ def save_results_as_pickle(
     # save results to pickle
     with open(str(path), "wb") as handle:
         pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+def importer(filename:str):
+    module_path = os.path.join(PATH_src['Models'], filename+'.py') # Specify path to the file you want to import from
+    spec = importlib.util.spec_from_file_location(filename, module_path)  # Load the module from the specified path
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
