@@ -28,7 +28,7 @@ def main(cfg: DictConfig) -> None:
 
     # print config structured as YAML
     print(OmegaConf.to_yaml(cfg))
-
+#----------------------------------------------------------------------------------------------------
     # partition dataset and get dataloaders
     trainloaders, valloaders, testloader = load_datasets(
         config=cfg.dataset_config,
@@ -47,7 +47,7 @@ def main(cfg: DictConfig) -> None:
         stragglers=cfg.stragglers_fraction,
         model=cfg.model,
     )
-
+#---------------------------------------------------------------------------------------------------------
     # get function that will executed by the strategy's evaluate() method
     # Set server's device
     device = cfg.server_device

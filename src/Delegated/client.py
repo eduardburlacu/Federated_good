@@ -2,7 +2,7 @@
 
 
 from collections import OrderedDict
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Tuple, Union
 
 import flwr as fl
 import numpy as np
@@ -14,23 +14,30 @@ from torch.utils.data import DataLoader
 
 from src.dataset import load_datasets
 from src.models import test, train
+from src.Delegated import utils
+
 
 class FlowerClient(
     fl.client.NumPyClient
 ):  # pylint: disable=too-many-instance-attributes
     """Standard Flower client for CNN training."""
-
     def __init__(
         self,
         net: torch.nn.Module,
         trainloader: DataLoader,
         valloader: DataLoader,
+        w_flops: float,
+        privacy:Union[int,0,1,2],
         device: torch.device,
         num_epochs: int,
         learning_rate: float,
         straggler_schedule: np.ndarray,
     ):  # pylint: disable=too-many-arguments
         self.net = net
+        self.w_flops = w_flops
+        self.tier = None
+        self.transfer_rate = None
+        self.dataset_size = None
         self.trainloader = trainloader
         self.valloader = valloader
         self.device = device
@@ -48,11 +55,16 @@ class FlowerClient(
         state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
         self.net.load_state_dict(state_dict, strict=True)
 
+    def update_transfer_rate(self):
+        pass
+
     def fit(
         self, parameters: NDArrays, config: Dict[str, Scalar]
     ) -> Tuple[NDArrays, int, Dict]:
         """Implements distributed fit function for a given client."""
         self.set_parameters(parameters)
+        if config['curr_round']!=1:
+            self.tier = config['tier']
 
         # At each round check if the client is a straggler,
         # if so, train less epochs (to simulate partial work)
@@ -89,7 +101,7 @@ class FlowerClient(
             learning_rate=self.learning_rate,
             proximal_mu=config["proximal_mu"],
         )
-
+        self.update_transfer_rate()
         return self.get_parameters({}), len(self.trainloader), {"is_straggler": False}
 
     def evaluate(

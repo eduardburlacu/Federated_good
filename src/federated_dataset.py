@@ -110,3 +110,20 @@ def load_data(client_names, train_test_split, dataset_name, type, min_no_samples
         is_embedded=is_embedded,
     )
     return dataset
+
+batch_size = 1
+if __name__ =='__main__':
+    # How to find the length of each dataset, dropping clients with data less than n=3
+    god_dataset = load_data([GOD_CLIENT_NAME], 0.5, 'train', 3, False)
+    print(len(god_dataset))
+    #How to get a list of dataloaders for each cid
+    trainloaders=[]
+    testloaders=[]
+    for cid,(client_name,_) in enumerate(FederatedDataset.clients):
+        trainset = load_data([client_name], 0.5,'train',3,False)
+        trainloader = DataLoader(trainset, batch_size, shuffle=True)
+        trainloaders.append(trainloader)
+        testset = load_data([client_name], 0.5, 'test',3, False)
+        testloader =DataLoader(testset,batch_size, shuffle=False)
+        testloaders.append(testloader)
+
