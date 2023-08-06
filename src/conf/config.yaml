@@ -1,5 +1,5 @@
 ---
-
+dataset: mnist
 num_clients: 1000 # total number of clients
 num_epochs: 10 # number of local epochs
 batch_size: 10
@@ -19,6 +19,11 @@ dataset_config:
   iid: false
   balance: false
   power_law: true
+
+federated_dataset_config:
+  min_dataset_size: 10
+  train_test_split: 0.9
+
 
 fit_config:
   drop_client: false # with FedProx, clients shouldn't be dropped even if they are stragglers

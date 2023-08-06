@@ -11,8 +11,9 @@ from flwr.common.typing import NDArrays, Scalar
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
-
+from pathlib import Path
 from src.dataset import load_datasets
+from src.federated_dataset import load_data
 from src.models import test, train
 
 class FlowerClient(
@@ -174,4 +175,153 @@ def gen_client_fn(
             stragglers_mat[int(cid)],
         )
 
+    return client_fn
+
+
+class FedFlowerClient(
+    FlowerClient
+):  # pylint: disable=too-many-instance-attributes
+    """Standard Flower client for CNN training."""
+
+    def __init__(
+        self,
+        net: torch.nn.Module,
+        fed_path: str,
+        dataset_name:str,
+        train_test_split: float,
+        device: torch.device,
+        num_epochs: int,
+        learning_rate: float,
+        straggler_schedule: np.ndarray,
+        batch_size:int =32,
+        min_num_samples:int =10,
+    ):  # pylint: disable=too-many-arguments
+        self.net = net
+        self.fed_path = fed_path
+        self.dataset_name =dataset_name
+        self.train_test_split = train_test_split
+        self.device = device
+        self.num_epochs = num_epochs
+        self.learning_rate = learning_rate
+        self.straggler_schedule = straggler_schedule
+        self.batch_size = batch_size
+        self.min_num_samples = min_num_samples
+        self.trainloader = None
+        self.testloader = None
+        self.is_embedded = self.dataset_name == "shakespeare"
+    def fit(
+        self, parameters: NDArrays, config: Dict[str, Scalar]
+    ) -> Tuple[NDArrays, int, Dict]:
+        """Implements distributed fit function for a given client."""
+        self.set_parameters(parameters)
+
+        # At each round check if the client is a straggler,
+        # if so, train less epochs (to simulate partial work)
+        # if the client is told to be dropped (e.g. because not using
+        # FedProx in the server), the fit method returns without doing
+        # training.
+        # This method always returns via the metrics (last argument being
+        # returned) whether the client is a straggler or not. This info
+        # is used by strategies other than FedProx to discard the update.
+        if (
+            self.straggler_schedule[int(config["curr_round"]) - 1]
+            and self.num_epochs > 1
+        ):
+            num_epochs = np.random.randint(1, self.num_epochs)
+
+            if config["drop_client"]:
+                # return without doing any training.
+                # The flag in the metric will be used to tell the strategy
+                # to discard the model upon aggregation
+                return (
+                    self.get_parameters({}),
+                    len(self.trainloader),
+                    {"is_straggler": True},
+                )
+
+        else:
+            num_epochs = self.num_epochs
+
+        if self.client_name is None:
+            self.client_name = config['client_name'] ### To be changed
+
+        if self.trainloader is None:
+
+            trainset = load_data(
+                client_names=[self.client_name],
+                train_test_split=self.train_test_split,
+                dataset_name=self.dataset_name.lower(),
+                type="train",
+                min_no_samples=self.min_num_samples,
+                is_embedded=self.is_embedded)
+            self.trainloader = DataLoader(
+                trainset, batch_size=self.batch_size, shuffle=True)
+
+        train(
+            self.net,
+            self.trainloader,
+            self.device,
+            epochs=num_epochs,
+            learning_rate=self.learning_rate,
+            proximal_mu=config["proximal_mu"],
+        )
+
+        return self.get_parameters({}), len(self.trainloader), {"is_straggler": False}
+
+    def evaluate(
+        self, parameters: NDArrays, config: Dict[str, Scalar]
+    ) -> Tuple[float, int, Dict]:
+        """Implements distributed evaluation for a given client."""
+        self.set_parameters(parameters)
+        if self.testloader is None:
+            testset = load_data(
+                client_names=[self.client_name],
+                train_test_split=self.train_test_split,
+                dataset_name=self.dataset_name.lower(),
+                type="test",
+                min_no_samples=self.min_num_samples,
+                is_embedded=self.is_embedded)
+            self.testloader = DataLoader( testset,self.batch_size,shuffle=False)
+
+        loss, accuracy = test(self.net, self.testloader, self.device)
+        return float(loss), len(self.testloader), {"accuracy": float(accuracy)}
+
+def get_fed_client_fn(
+    num_clients: int,
+    num_rounds: int,
+    num_epochs: int,
+    dataset_name: str,
+    learning_rate: float,
+    stragglers: float,
+    model: DictConfig,
+    train_test_split: float,
+    batch_size: int = 32,
+    min_num_samples: int = 10,
+):
+    # Defines a staggling schedule for each clients, i.e at which round will they
+    # be a straggler. This is done so at each round the proportion of staggling
+    # clients is respected
+    stragglers_mat = np.transpose(
+        np.random.choice(
+            [0, 1], size=(num_rounds, num_clients), p=[1 - stragglers, stragglers]
+        )
+    )
+    def client_fn(cid: str) -> FlowerClient:
+        """Create a Flower client representing a single organization."""
+        # Load model
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        net = instantiate(model).to(device)
+        fed_path = fn(cid)
+        return FedFlowerClient(
+            net,
+            fed_path,
+            dataset_name,
+            train_test_split,
+            device,
+            num_epochs,
+            learning_rate,
+            stragglers_mat[int(cid)],
+            batch_size,
+            min_num_samples
+        )
     return client_fn

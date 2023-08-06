@@ -3,6 +3,7 @@ import os
 import sys
 import flwr as fl
 import hydra
+import torch.utils.data
 from hydra.core.hydra_config import HydraConfig
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
@@ -11,12 +12,11 @@ from omegaconf import DictConfig, OmegaConf
 src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 sys.path.insert(0, src_path)
 
-from src import PATH_src
-from src import client, server, utils
-from src.dataset import load_datasets
+from src import PATH_src, GOD_CLIENT_NAME
+from src import client, server, utils, dataset, federated_dataset
 from src.utils import save_results_as_pickle
 
-@hydra.main(config_path=PATH_src['conf'], config_name="config", version_base=None)
+@hydra.main(config_path=PATH_src["conf"], config_name="config", version_base=None)
 def main(cfg: DictConfig) -> None:
     """Main function to run CNN federated learning on MNIST.
 
@@ -25,29 +25,56 @@ def main(cfg: DictConfig) -> None:
     cfg : DictConfig
         An omegaconf object that stores the hydra config.
     """
-
     # print config structured as YAML
     print(OmegaConf.to_yaml(cfg))
-#----------------------------------------------------------------------------------------------------
-    # partition dataset and get dataloaders
-    trainloaders, valloaders, testloader = load_datasets(
-        config=cfg.dataset_config,
-        num_clients=cfg.num_clients,
-        batch_size=cfg.batch_size,
-    )
+    if cfg.dataset.lower() in {"mnist","cifar10"}:
+        # partition dataset and get dataloaders
+        trainloaders, valloaders, testloader = dataset.load_datasets(
+            config=cfg.dataset_config,
+            num_clients=cfg.num_clients,
+            batch_size=cfg.batch_size,
+        )
 
-    # prepare function that will be used to spawn each client
-    client_fn = client.gen_client_fn(
-        num_clients=cfg.num_clients,
-        num_epochs=cfg.num_epochs,
-        trainloaders=trainloaders,
-        valloaders=valloaders,
-        num_rounds=cfg.num_rounds,
-        learning_rate=cfg.learning_rate,
-        stragglers=cfg.stragglers_fraction,
-        model=cfg.model,
-    )
-#---------------------------------------------------------------------------------------------------------
+        # prepare function that will be used to spawn each client
+        client_fn = client.gen_client_fn(
+            num_clients=cfg.num_clients,
+            num_epochs=cfg.num_epochs,
+            trainloaders=trainloaders,
+            valloaders=valloaders,
+            num_rounds=cfg.num_rounds,
+            learning_rate=cfg.learning_rate,
+            stragglers=cfg.stragglers_fraction,
+            model=cfg.model,
+        )
+
+
+    elif cfg.dataset in {"sent140","shakespeare","nist","synthetic_0.5_0.5","synthetic_0_0",'synthetic_1_1',"synthetic_iid",}:
+        testset = federated_dataset.load_data(
+            client_names=[GOD_CLIENT_NAME],
+            train_test_split=0.9,
+            dataset_name=cfg.dataset,
+            type="test",
+            min_no_samples=cfg.federated_dataset_config.min_dataset_size,
+            is_embedded=cfg.federated_dataset_config.is_embedded,
+        )
+        testloader = torch.utils.data.DataLoader(testset, cfg.batch_size, shuffle=False)
+        print("centralized testset length: ", len(testset))
+
+        client_fn = client.get_fed_client_fn(
+            num_clients=cfg.num_clients,
+            num_rounds=cfg.num_rounds,
+            num_epochs=cfg.num_epochs,
+            dataset_name=cfg.dataset,
+            learning_rate=cfg.learning_rate,
+            stragglers=cfg.stragglers_fraction,
+            model=cfg.model,
+            train_test_split=cfg.federated_dataset_config.train_test_split,
+            batch_size=cfg.batch_size,
+            min_num_samples=cfg.federated_dataset_config.min_num_samples,
+        )
+
+    else: raise ValueError('Dataset in configuration not available.')
+
     # get function that will executed by the strategy's evaluate() method
     # Set server's device
     device = cfg.server_device

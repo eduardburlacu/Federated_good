@@ -9,14 +9,15 @@ from torch.utils.data import DataLoader
 from pathlib import Path
 from typing import Dict, List
 #----------------------------Internal Imports-----------------------------
-from src.utils import train, test, get_params, set_params, set_random_seed
+from src.models import train, test
+from src.utils import set_random_seed
 from src.dataset_utils import get_dataloader
-from src.script.parse_config import get_variables
+from src.script.parse_config import get_variables  #
 from src.federated_dataset import load_data
 from src.Models import FedAvg
 from src.visualizer import summarize_loss
 
-def get_FlowerClient_class(model, VARIABLES:Dict):
+def get_FlowerClient_class(model, VARIABLES):
     class FlowerClient(fl.client.NumPyClient):
         model_class = model
         train_val_split = VARIABLES['VAL_SPLIT']
@@ -81,7 +82,7 @@ def get_FlowerClient_class(model, VARIABLES:Dict):
 
     return FlowerClient
 
-def get_FlwrClient_class(model, VARIABLES:Dict):
+def get_FlwrClient_class(model, VARIABLES):
     class FlwrClient(fl.client.NumPyClient):
 
         model_class = model
