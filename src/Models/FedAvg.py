@@ -10,17 +10,17 @@ from src.script.parse_config import DatasetNode
 class CNN_MNIST(Model):
     def __init__(self, cid: str, *args, **kwargs):
         super(CNN_MNIST, self).__init__(cid, *args, **kwargs)
-        self.conv1 = nn.Conv2d(1, 32, 5, padding='same') #  32*28*28
-        self.pool1 = nn.MaxPool2d(2, 2)                  #  32*14*14
-        self.conv2 = nn.Conv2d(32,64, 5, padding='same') #  64*14*14
-        self.pool2 = nn.MaxPool2d(2,2)                   #  64*7*7
+        self.conv1 = nn.Conv2d(1, 32, 5, padding='same')             #  32*28*28
+        self.pool1 = nn.MaxPool2d(kernel_size=(2,2), padding='same') #  32*14*14
+        self.conv2 = nn.Conv2d(32, 64, 5, padding='same')            #  64*14*14
+        self.pool2 = nn.MaxPool2d(kernel_size=(2,2), padding='same') #  64*7*7
         self.fc1 = nn.Linear(64* 7* 7, 512)
         self.fc2 = nn.Linear(512, 10)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.pool1(self.conv1(x))
-        x = self.pool2(self.conv2(x))
-        x = x.view(-1, 64* 7* 7)
+        x = self.pool1(F.relu(self.conv1(x)))
+        x = self.pool2(F.relu(self.conv2(x)))
+        x = torch.flatten(x, 1)
         x = F.relu(self.fc1(x))
         x = F.softmax(self.fc2(x), dim=1)
         return x
@@ -37,10 +37,10 @@ class CNN_CIFAR(Model):
         self.fc2 = nn.Linear(64, 10)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.pool1(self.conv1(x))
-        x = self.pool2(self.conv2(x))
-        x = self.conv3(x)
-        x = x.view(-1, 64* 4* 4)
+        x = self.pool1(F.relu(self.conv1(x)))
+        x = self.pool2(F.relu(self.conv2(x)))
+        x = F.relu(self.conv3(x))
+        x = torch.flatten(x,1)
         x = F.relu(self.fc1(x))
         x = F.softmax(self.fc2(x), dim=1)
         return x
@@ -52,7 +52,7 @@ class MLP_MNIST(Model):
     self.fc3 = nn.Linear(200, 10)
 
   def forward(self, x: torch.Tensor) -> torch.Tensor:
-    x = x.view(-1, 28*28*1)
+    x = torch.flatten(x,1)
     x = F.relu(self.fc1(x))
     x = F.relu(self.fc2(x))
     x = F.softmax(self.fc3(x), dim=1)
@@ -64,7 +64,7 @@ class LSTM_Shakespeare(Model):
         self.n_hidden = 256
         self.n_classes = 80
         self.embedding_size = 8
-        self.embedding = nn.Embedding(80, 8)
+        self.embedding = nn.Embedding(self.n_classes, self.embedding_size)
 
         self.lstm = nn.LSTM(
             input_size=self.embedding_size,
@@ -73,7 +73,7 @@ class LSTM_Shakespeare(Model):
             batch_first=True
         )
         self.fc1 = nn.Linear(
-            self.n_hidden * 2,
+            self.n_hidden,
             self.n_classes
         )
 
@@ -83,8 +83,7 @@ class LSTM_Shakespeare(Model):
         x = self.embedding(x)
         # x: (sequence_length, num_batches, embedding_size)
         out, (h, c) = self.lstm(x)          # h: (num_layers, num_batches, n_hidden)
-        h = torch.permute( h, (1, 0, 2))    # h: (num_batches, num_layers, n_hidden)
-        h = h.view(-1, 2* self.n_hidden) # h: (num_batches, 2 * n_hidden)
+        h = h[1,:,:]                        # h: (num_batches, n_hidden)
         x = self.fc1(h)
         x = F.softmax(x,dim=1)
         return x

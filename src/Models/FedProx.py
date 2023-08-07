@@ -19,6 +19,7 @@ class MLR_FEMNIST(Model):
     # pylint: disable-msg=arguments-differ,invalid-name
     def forward(self, x: Tensor) -> Tensor:
         """Compute forward pass."""
+        x = torch.flatten(x,1)
         x = self.fc(x)
         x = F.softmax(x, dim=1)
         return x
@@ -33,8 +34,23 @@ class MLR_MNIST(Model):
     # pylint: disable-msg=arguments-differ,invalid-name
     def forward(self, x: Tensor) -> Tensor:
         """Compute forward pass."""
+        x = torch.flatten(x,1)
         x = self.fc(x)
         x = F.softmax(x, dim=1)
+        return x
+
+class MLR_SYNTHETIC(Model):
+    def __init__(self, cid) -> None:
+        super().__init__(cid)
+        self.n_classes = 10
+        self.n_inputs = 60
+        self.fc = nn.Linear(self.n_inputs, self.n_classes)
+
+    # pylint: disable-msg=arguments-differ,invalid-name
+    def forward(self, x: Tensor) -> Tensor:
+        """Compute forward pass."""
+        x = self.fc(x)
+        x = F.softmax(x,1)
         return x
 
 class LSTM_Shakespeare(Model):
@@ -43,7 +59,7 @@ class LSTM_Shakespeare(Model):
         self.n_hidden = 256
         self.n_classes = 80
         self.embedding_size = 8
-        self.embedding = nn.Embedding(80, 8)
+        self.embedding = nn.Embedding(self.n_classes, self.embedding_size)
         self.lstm = nn.LSTM(
             input_size=self.embedding_size,
             hidden_size=self.n_hidden,
@@ -51,7 +67,7 @@ class LSTM_Shakespeare(Model):
             batch_first=True
         )
         self.fc1 = nn.Linear(
-            self.n_hidden * 2,
+            self.n_hidden,
             self.n_classes
         )
 
@@ -61,8 +77,7 @@ class LSTM_Shakespeare(Model):
         x = self.embedding(x)
         # x: (sequence_length, num_batches, embedding_size)
         out, (h, c) = self.lstm(x)          # h: (num_layers, num_batches, n_hidden)
-        h = torch.permute( h, (1, 0, 2))    # h: (num_batches, num_layers, n_hidden)
-        h = h.view(-1, 2* self.n_hidden) # h: (num_batches, 2 * n_hidden)
+        h = h[1,:,:]                        # h: (num_batches, n_hidden)
         x = self.fc1(h)
         x = F.softmax(x,dim=1)
         return x
@@ -72,21 +87,22 @@ class LSTM_Sent(Model):
         super(LSTM_Sent, self).__init__(cid)
         self.embedding_size = 300
         self.n_hidden = 256
-        self.n_classes = 5
+        self.hidden_linear = 30
+        self.n_classes = 1
         self.LSTM = nn.LSTM(
             input_size=self.embedding_size,
             hidden_size=self.n_hidden,
             num_layers=2,
             batch_first=True
         )
-        self.fc1 = nn.Linear(2*self.n_hidden, self.n_classes)
+        self.fc1 = nn.Linear(self.n_hidden, self.hidden_linear)
+        self.fc2 = nn.Linear(self.hidden_linear, self.n_classes)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        out, (h, c) = self.LSTM(x)
-        h = h.permute(1,0,2)
-        h = h.view(-1, 2 * self.n_hidden)
+        out, (h, c) = self.lstm(x)          # h: (num_layers, num_batches, n_hidden)
+        h = h[1,:,:]                        # h: (num_batches, n_hidden)
         x = self.fc1(h)
-        x = F.softmax(x, 1)
+        x = F.sigmoid(self.fc2(x))
         return x
 
 def load_models_datanodes(model:str =None , dataset:str = None):

@@ -15,13 +15,10 @@ assert total_params3 == 122570
 net4 = LSTM_Shakespeare('4')
 print(net4)
 total_params4 = sum(p.numel() for p in net4.parameters())
-#assert total_params4==866578
+assert total_params4==866578
 
 
-            #    batch seq-length vocab_size
-x = torch.randint([7, 5, 10])
-x= nn.Embedding(10,19)(x)
-print(x)
+
 
 '''
 net5=LSTM_Large('5')
