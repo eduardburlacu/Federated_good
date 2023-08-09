@@ -49,18 +49,33 @@ def main(cfg: DictConfig) -> None:
 
 
     elif cfg.dataset in {"sent140","shakespeare","nist","synthetic_0.5_0.5","synthetic_0_0",'synthetic_1_1',"synthetic_iid",}:
+
+        trainset = federated_dataset.load_data(
+            client_names=[GOD_CLIENT_NAME],
+            train_test_split=cfg.federated_dataset_config.train_test_split,
+            dataset_name=cfg.dataset,
+            type="train",
+            min_no_samples=cfg.federated_dataset_config.min_dataset_size,
+            is_embedded=cfg.federated_dataset_config.is_embedded,
+        )
+
         testset = federated_dataset.load_data(
             client_names=[GOD_CLIENT_NAME],
-            train_test_split=0.9,
+            train_test_split=cfg.federated_dataset_config.train_test_split,
             dataset_name=cfg.dataset,
             type="test",
             min_no_samples=cfg.federated_dataset_config.min_dataset_size,
             is_embedded=cfg.federated_dataset_config.is_embedded,
         )
+
         testloader = torch.utils.data.DataLoader(testset, cfg.batch_size, shuffle=False)
         print("centralized testset length: ", len(testset))
 
+        client_names = sorted(federated_dataset.FederatedDataset.clients.keys())
+        # client_n_samples = {k: len(v) for k, v in federated_dataset.FederatedDataset.clients.items()}
+
         client_fn = client.get_fed_client_fn(
+            client_names= client_names,
             num_clients=cfg.num_clients,
             num_rounds=cfg.num_rounds,
             num_epochs=cfg.num_epochs,

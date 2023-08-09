@@ -181,12 +181,11 @@ def gen_client_fn(
 class FedFlowerClient(
     FlowerClient
 ):  # pylint: disable=too-many-instance-attributes
-    """Standard Flower client for CNN training."""
 
     def __init__(
         self,
         net: torch.nn.Module,
-        fed_path: str,
+        client_name:str,
         dataset_name:str,
         train_test_split: float,
         device: torch.device,
@@ -197,7 +196,7 @@ class FedFlowerClient(
         min_num_samples:int =10,
     ):  # pylint: disable=too-many-arguments
         self.net = net
-        self.fed_path = fed_path
+        self.client_name = client_name
         self.dataset_name =dataset_name
         self.train_test_split = train_test_split
         self.device = device
@@ -242,8 +241,6 @@ class FedFlowerClient(
         else:
             num_epochs = self.num_epochs
 
-        if self.client_name is None:
-            self.client_name = config['client_name'] ### To be changed
 
         if self.trainloader is None:
 
@@ -287,6 +284,7 @@ class FedFlowerClient(
         return float(loss), len(self.testloader), {"accuracy": float(accuracy)}
 
 def get_fed_client_fn(
+    client_names: List[str],
     num_clients: int,
     num_rounds: int,
     num_epochs: int,
@@ -311,10 +309,11 @@ def get_fed_client_fn(
         # Load model
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         net = instantiate(model).to(device)
-        fed_path = fn(cid)
+        client_name = client_names[cid]
+
         return FedFlowerClient(
             net,
-            fed_path,
+            client_name,
             dataset_name,
             train_test_split,
             device,
