@@ -1,3 +1,10 @@
+import flwr
+from typing import List
+from flwr.server.client_proxy import ClientProxy
+import time
+
+def to_probability(array): return [l / sum(array) for l in array]
+
 def generate_clusters(num_clusters:int, num_clients:int,sampler):
     '''
     For each cid, it will return {cid:set(neighbours)}, to be passed to strategy.
@@ -31,16 +38,13 @@ def update_capacity(client):
     '''
     pass
 
-def update_tier(capacities:list(int), treshold:float = 0.6):
+def update_tier(client:ClientProxy):
     '''
     def update_tier(self, round :int,  total_transfer:float):
         if round==1 or self.transfer_rate is None:
             self.capacity = self.flops / self.total_flop_size
         elif self.transfer_rate==0. :
             self.capacity = (self.flops / self.total_flop_size) / ((self.dataset_size / self.transfer_rate) / total_transfer)
-    :param capacities:
-    :param treshold:
-    :return:
     '''
     pass
 def KL_div():
@@ -48,5 +52,3 @@ def KL_div():
 def get_cluster_metrics():
     pass
 
-
-def to_probability(array): return array/sum(array)
