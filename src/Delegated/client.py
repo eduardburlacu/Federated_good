@@ -2,9 +2,8 @@
 
 import time
 from collections import OrderedDict
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Tuple, Type
 
-from socket import SocketType
 import flwr as fl
 import numpy as np
 import torch
@@ -30,6 +29,7 @@ class FlowerClient(
     def __init__(
         self,
         net: torch.nn.Module,
+        model:Type[nn.Module],
         trainloader: DataLoader,
         valloader: DataLoader,
         device: torch.device,
@@ -40,7 +40,8 @@ class FlowerClient(
         index:str,
         ip_address:str,
     ):  # pylint: disable=too-many-arguments
-        self.net = net
+        self.net = net # to be deleted
+        self.model = model
         self.trainloader = trainloader
         self.valloader = valloader
         self.device = device
@@ -58,13 +59,6 @@ class FlowerClient(
     def set_parameters(self, parameters: NDArrays) -> None:
         """Changes the parameters of the model using the given ones."""
         params_dict = zip(self.net.state_dict().keys(), parameters)
-        '''
-        if self.split_layer == (config.model_len -1):
-			self.net.load_state_dict(weights)
-		else:
-			pweights = utils.split_weights_client(weights,self.net.state_dict())
-			self.net.load_state_dict(pweights)
-        '''
         state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
         self.net.load_state_dict(state_dict, strict=True)
 
@@ -96,23 +90,30 @@ class FlowerClient(
             momentum: float = 0.9
     ):
 
-        net = split_model(self.net, split_layer)[0]
+        self.net = split_model(self.net, split_layer)[0]
+        global_params = [val.detach().clone() for val in self.net.parameters()]
+        self.net.train()
         # criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.SGD(
-            net.parameters(),
+            self.net.parameters(),
             lr=learning_rate,
             momentum=momentum,
         )
+
         for e in range(epochs):
             for batch_idx, (features, targets) in enumerate(trainloader):
                 if batch_idx<= int(frac* len(trainloader)):
                     features, targets = features.to(device), targets.to(device)
                     optimizer.zero_grad()
-                    smashed_activations = net(features)
+                    proximal_term = 0.0
+                    for local_weights, global_weights in zip(self.net.parameters(), global_params):
+                        proximal_term += (local_weights - global_weights).norm(2)
+                    smashed_activations = self.net(features)
                     # Transfer data to other device
                     msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER',
                            str(client_ip),
                            split_layer,
+                           proximal_term,
                            smashed_activations.cpu(),
                            targets.cpu()
                            ]
@@ -123,52 +124,50 @@ class FlowerClient(
                     # Wait for backprop
                     gradients = recv_msg(self.sock)[1].to(device)
                     smashed_activations.backward(gradients)
-        #Send the first part of the net to the fellow
-        msg= [
-            'MSG_ATTACH_NETWORK',
-            None
-        ]
-        return [val.cpu().numpy() for _, val in net.state_dict().items()] #!!!!!!!!!!!!!!!!!!!!!
+
+        return self.get_parameters({})
 
     def split_follower(
             self,
             device: torch.device,
             learning_rate: float,
             proximal_mu: float,
-            frac: float = 1.0,
             momentum: float = 0.9
     ):
         # Wait for forward prop
         msg = recv_msg(self.sock, 'MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER')
         criterion = nn.CrossEntropyLoss()
 
-        client_ip, split_layer, smashed_activations, targets = msg[1:]
-        net = split_model(self.net, int(split_layer))[1]
+        client_ip, split_layer, proximal_term, smashed_activations, targets = msg[1:]
+        self.net = split_model(self.net, int(split_layer))[1]
+        self.net.train()
+        global_params = [val.detach().clone() for val in self.net.parameters()]
         optimizer = torch.optim.SGD(
-            net.parameters(),
+            self.net.parameters(),
             lr=learning_rate,
             momentum=momentum,
         )
         smashed_activations, targets = smashed_activations.to(device), targets.to(device)
         optimizer.zero_grad()
-        proximal_term = 0.0
-        for local_weights, global_weights in zip(net.parameters(), self.net.parameters()): ####!!!!!!!!!!!!!!!!!!!!!!!global_params
+
+        for local_weights, global_weights in zip(self.net.parameters(), global_params):
             proximal_term += (local_weights - global_weights).norm(2)
-        output = net(smashed_activations)
-        loss = criterion(output, targets)
+        output = self.net(smashed_activations)
+        loss = criterion(output, targets) + proximal_mu * proximal_term /2
         loss.backward()
         optimizer.step()
         # Send gradients to client
         msg = ['MSG_SERVER_GRADIENTS_SERVER_TO_CLIENT_' + str(client_ip), smashed_activations.grad]
         send_msg(self.sock, msg)
-        return [val.cpu().numpy() for _, val in net.state_dict().items()], None, {"split":client_ip}
+
+        return self.get_parameters({}), None, {"split":client_ip}
 
 
     def fit(
         self, parameters: NDArrays, config: Dict[str, Scalar]
     ) -> Tuple[NDArrays, int, Dict]:
         """Implements distributed fit function for a given client."""
-        self.set_parameters(parameters)
+
 
         # At each round check if the client is a straggler,
         # if so, train less epochs (to simulate partial work)
@@ -178,6 +177,8 @@ class FlowerClient(
         # This method always returns via the metrics (last argument being
         # returned) whether the client is a straggler or not. This info
         # is used by strategies other than FedProx to discard the update.
+        if self.net is None:
+            self.net = instantiate(self.model).to(self.device)
         if (
             self.straggler_schedule[int(config["curr_round"]) - 1]
             and self.num_epochs > 1
@@ -197,7 +198,8 @@ class FlowerClient(
         else:
             num_epochs = self.num_epochs
 
-        if config["split_layer"] == (len(self.net) -1):  # No offloading training
+        if config["split_layer"] == len(list(self.net.children()))-1:  # No offloading training
+            self.set_parameters(parameters)
             train(
                 self.net,
                 self.trainloader,
@@ -207,13 +209,20 @@ class FlowerClient(
                 proximal_mu=config["proximal_mu"],
                 frac= config["frac"]
             )
-            return self.get_parameters({}), len(self.trainloader), {"is_straggler": False}
+            return self.get_parameters({}), len(self.trainloader), {"is_straggler": False, "split":None}
 
         else: # Offload a part of the training
+
+            if len(list(self.net.children())) != len(parameters):
+                self.net = instantiate(self.model).to(self.device)
+
+            self.set_parameters(parameters)
+
             if not self.connected:
                 self.connect(config['other_index'],config['other_ip'])
 
             param = self.split_train(
+                split_layer=config["split_layer"],
                 trainloader=self.trainloader,
                 device=self.device,
                 epochs=num_epochs,
@@ -223,7 +232,7 @@ class FlowerClient(
                 frac = 1.0,
             )
             #self.disconnect()
-            return param, len(self.trainloader), {"is_straggler": False, "split":self.ip}
+            return param, len(self.trainloader), {"is_straggler": False, "split":self.index}
 
     def evaluate(
         self, parameters: NDArrays, config: Dict[str, Scalar]
@@ -305,6 +314,7 @@ def gen_client_fn(
 
         return FlowerClient(
             net,
+            model,
             trainloader,
             valloader,
             device,
