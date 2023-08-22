@@ -25,11 +25,10 @@ def main(cfg: DictConfig) -> None:
     cfg : DictConfig
         An omegaconf object that stores the hydra config.
     """
-    # print config structured as YAML
     print(OmegaConf.to_yaml(cfg))
     if cfg.dataset.lower() in {"mnist","cifar10"}:
         # partition dataset and get dataloaders
-        trainloaders, valloaders, testloader = dataset.load_datasets(
+        trainloaders, valloaders, testloader, datasizes = dataset.load_datasets(
             config=cfg.dataset_config,
             num_clients=cfg.num_clients,
             batch_size=cfg.batch_size,
@@ -41,12 +40,12 @@ def main(cfg: DictConfig) -> None:
             num_epochs=cfg.num_epochs,
             trainloaders=trainloaders,
             valloaders=valloaders,
+            datasizes=datasizes,
             num_rounds=cfg.num_rounds,
             learning_rate=cfg.learning_rate,
             stragglers=cfg.stragglers_fraction,
             model=cfg.model,
         )
-
 
     elif cfg.dataset in {"sent140","shakespeare","nist","synthetic_0.5_0.5","synthetic_0_0",'synthetic_1_1',"synthetic_iid",}:
 
@@ -70,13 +69,12 @@ def main(cfg: DictConfig) -> None:
 
         testloader = torch.utils.data.DataLoader(testset, cfg.batch_size, shuffle=False)
         print("centralized testset length: ", len(testset))
-
         client_names = sorted(federated_dataset.FederatedDataset.clients.keys())
         # client_n_samples = {k: len(v) for k, v in federated_dataset.FederatedDataset.clients.items()}
 
         client_fn = client.get_fed_client_fn(
             client_names= client_names,
-            num_clients=cfg.num_clients,
+            num_clients= len(client_names),
             num_rounds=cfg.num_rounds,
             num_epochs=cfg.num_epochs,
             dataset_name=cfg.dataset,
