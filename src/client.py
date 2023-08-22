@@ -26,6 +26,7 @@ class FlowerClient(
         net: torch.nn.Module,
         trainloader: DataLoader,
         valloader: DataLoader,
+        datasize:float,
         device: torch.device,
         num_epochs: int,
         learning_rate: float,
@@ -34,6 +35,7 @@ class FlowerClient(
         self.net = net
         self.trainloader = trainloader
         self.valloader = valloader
+        self.datasize = datasize
         self.device = device
         self.num_epochs = num_epochs
         self.learning_rate = learning_rate
@@ -55,14 +57,6 @@ class FlowerClient(
         """Implements distributed fit function for a given client."""
         self.set_parameters(parameters)
 
-        # At each round check if the client is a straggler,
-        # if so, train less epochs (to simulate partial work)
-        # if the client is told to be dropped (e.g. because not using
-        # FedProx in the server), the fit method returns without doing
-        # training.
-        # This method always returns via the metrics (last argument being
-        # returned) whether the client is a straggler or not. This info
-        # is used by strategies other than FedProx to discard the update.
         if (
             self.straggler_schedule[int(config["curr_round"]) - 1]
             and self.num_epochs > 1
@@ -71,8 +65,6 @@ class FlowerClient(
 
             if config["drop_client"]:
                 # return without doing any training.
-                # The flag in the metric will be used to tell the strategy
-                # to discard the model upon aggregation
                 return (
                     self.get_parameters({}),
                     len(self.trainloader),
@@ -108,12 +100,11 @@ def gen_client_fn(
     num_epochs: int,
     trainloaders: List[DataLoader],
     valloaders: List[DataLoader],
+    datasizes: List[float],
     learning_rate: float,
     stragglers: float,
     model: DictConfig,
-) -> Tuple[
-    Callable[[str], FlowerClient], DataLoader
-]:  # pylint: disable=too-many-arguments
+) -> Callable[[str], FlowerClient]:  # pylint: disable=too-many-arguments
     """Generates the client function that creates the Flower Clients.
 
     Parameters
@@ -169,6 +160,7 @@ def gen_client_fn(
             net,
             trainloader,
             valloader,
+            datasizes[int(cid)],
             device,
             num_epochs,
             learning_rate,

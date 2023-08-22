@@ -30,7 +30,7 @@ def _partition_data(
     power_law: Optional[bool] = True,
     balance: Optional[bool] = False,
     seed: Optional[int] = 42,
-) -> Tuple[List[Dataset], Dataset]:
+) -> Tuple[List[Dataset], Dataset, int]:
     """Split training set into iid or non iid partitions to simulate the
     federated setting.
 
@@ -57,7 +57,6 @@ def _partition_data(
         A list of dataset for each client and a single dataset to be use for testing the model.
     """
     trainset, testset = _download_data()
-
     if balance:
         trainset = _balance_classes(trainset, seed)
         
@@ -96,7 +95,7 @@ def _partition_data(
                 for i in range(num_clients)
             ]
 
-    return datasets, testset
+    return datasets, testset, len(trainset)
 
 
 def _balance_classes(

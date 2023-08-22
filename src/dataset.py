@@ -1,7 +1,7 @@
 """MNIST dataset utilities for federated learning."""
 
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 import torch
 from omegaconf import DictConfig
@@ -16,7 +16,7 @@ def load_datasets(  # pylint: disable=too-many-arguments
     val_ratio: float = 0.1,
     batch_size: Optional[int] = 32,
     seed: Optional[int] = 42,
-) -> Tuple[DataLoader, DataLoader, DataLoader]:
+) -> Tuple[List[DataLoader], List[DataLoader], DataLoader, List[float]]:
     """Creates the dataloaders to be fed into the model.
 
     Parameters
@@ -39,7 +39,7 @@ def load_datasets(  # pylint: disable=too-many-arguments
         The DataLoader for training, the DataLoader for validation, the DataLoader for testing.
     """
     print(f"Dataset partitioning config: {config}")
-    datasets, testset = _partition_data(
+    datasets, testset, total_size = _partition_data(
         num_clients,
         iid=config.iid,
         balance=config.balance,
@@ -49,7 +49,9 @@ def load_datasets(  # pylint: disable=too-many-arguments
     # Split each partition into train/val and create DataLoader
     trainloaders = []
     valloaders = []
+    datasizes = []
     for dataset in datasets:
+        datasizes.append(len(dataset)/total_size)
         len_val = int(len(dataset) / (1 / val_ratio))
         lengths = [len(dataset) - len_val, len_val]
         ds_train, ds_val = random_split(
@@ -57,4 +59,5 @@ def load_datasets(  # pylint: disable=too-many-arguments
         )
         trainloaders.append(DataLoader(ds_train, batch_size=batch_size, shuffle=True))
         valloaders.append(DataLoader(ds_val, batch_size=batch_size))
-    return trainloaders, valloaders, DataLoader(testset, batch_size=batch_size)
+
+    return trainloaders, valloaders, DataLoader(testset, batch_size=batch_size), datasizes
