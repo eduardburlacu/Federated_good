@@ -2,7 +2,7 @@
 
 import time
 from collections import OrderedDict
-from typing import Callable, Dict, List, Tuple, Type
+from typing import Callable, Dict, List, Tuple
 
 import flwr as fl
 import numpy as np
@@ -12,9 +12,9 @@ from flwr.common.typing import NDArrays, Scalar
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
-from pathlib import Path
+#from pathlib import Path
 
-from src.dataset import load_datasets
+#from src.dataset import load_datasets
 from src.federated_dataset import load_data
 from src.Delegated.models import test, train
 from src.Delegated.Communication import Communicator
@@ -28,8 +28,7 @@ class FlowerClient(
 
     def __init__(
         self,
-        net: torch.nn.Module,
-        model:Type[nn.Module],
+        model: DictConfig,
         trainloader: DataLoader,
         valloader: DataLoader,
         device: torch.device,
@@ -40,7 +39,7 @@ class FlowerClient(
         index:str,
         ip_address:str,
     ):  # pylint: disable=too-many-arguments
-        self.net = net # to be deleted
+        self.net = None
         self.model = model
         self.trainloader = trainloader
         self.valloader = valloader
@@ -84,7 +83,6 @@ class FlowerClient(
             device: torch.device,
             epochs: int,
             learning_rate: float,
-            proximal_mu: float,
             client_ip: str = '',
             frac: float = 1.0,
             momentum: float = 0.9
@@ -160,79 +158,88 @@ class FlowerClient(
         msg = ['MSG_SERVER_GRADIENTS_SERVER_TO_CLIENT_' + str(client_ip), smashed_activations.grad]
         send_msg(self.sock, msg)
 
-        return self.get_parameters({}), None, {"split":client_ip}
+        return self.get_parameters({}), -1, {"split":client_ip}
 
 
     def fit(
         self, parameters: NDArrays, config: Dict[str, Scalar]
     ) -> Tuple[NDArrays, int, Dict]:
-        """Implements distributed fit function for a given client."""
+        """Implements distributed fit function for a given client.
 
+        At each round check if the client is a straggler,
+        if so, train less epochs (to simulate partial work)
+        if the client is told to be dropped (e.g. because not using
+        FedProx in the server), the fit method returns without doing
+        training.
+        This method always returns via the metrics (last argument being
+        returned) whether the client is a straggler or not. This info
+        is used by strategies other than FedProx to discard the update.
+        """
 
-        # At each round check if the client is a straggler,
-        # if so, train less epochs (to simulate partial work)
-        # if the client is told to be dropped (e.g. because not using
-        # FedProx in the server), the fit method returns without doing
-        # training.
-        # This method always returns via the metrics (last argument being
-        # returned) whether the client is a straggler or not. This info
-        # is used by strategies other than FedProx to discard the update.
         if self.net is None:
             self.net = instantiate(self.model).to(self.device)
-        if (
-            self.straggler_schedule[int(config["curr_round"]) - 1]
-            and self.num_epochs > 1
-        ):
-            num_epochs = np.random.randint(1, self.num_epochs)
 
-            if config["drop_client"]:
-                # return without doing any training.
-                # The flag in the metric will be used to tell the strategy
-                # to discard the model upon aggregation
-                return (
-                    self.get_parameters({}),
-                    len(self.trainloader),
-                    {"is_straggler": True},
-                )
+        if config['follower']:
+            return self.split_follower(
+                self.device,
+                self.learning_rate,
+                config["proximal_mu"]
+            )
 
         else:
-            num_epochs = self.num_epochs
+            if (
+                self.straggler_schedule[int(config["curr_round"]) - 1]
+                and self.num_epochs > 1
+            ):
+                num_epochs = np.random.randint(1, self.num_epochs)
 
-        if config["split_layer"] == len(list(self.net.children()))-1:  # No offloading training
-            self.set_parameters(parameters)
-            train(
-                self.net,
-                self.trainloader,
-                self.device,
-                epochs=num_epochs,
-                learning_rate=self.learning_rate,
-                proximal_mu=config["proximal_mu"],
-                frac= config["frac"]
-            )
-            return self.get_parameters({}), len(self.trainloader), {"is_straggler": False, "split":None}
+                if config["drop_client"]:
+                    # return without doing any training.
+                    # The flag in the metric will be used to tell the strategy
+                    # to discard the model upon aggregation
+                    return (
+                        self.get_parameters({}),
+                        len(self.trainloader),
+                        {"is_straggler": True},
+                    )
 
-        else: # Offload a part of the training
+            else:
+                num_epochs = self.num_epochs
 
-            if len(list(self.net.children())) != len(parameters):
-                self.net = instantiate(self.model).to(self.device)
+            if config["split_layer"] == len(list(self.net.children()))-1:  # No offloading training
+                self.set_parameters(parameters)
+                train(
+                    self.net,
+                    self.trainloader,
+                    self.device,
+                    epochs=num_epochs,
+                    learning_rate=self.learning_rate,
+                    proximal_mu=config["proximal_mu"],
+                    frac= config["frac"]
+                )
+                return self.get_parameters({}), len(self.trainloader), {"is_straggler": False, "split":None}
 
-            self.set_parameters(parameters)
+            else: # Offload a part of the training
 
-            if not self.connected:
-                self.connect(config['other_index'],config['other_ip'])
+                if len(list(self.net.children())) != len(parameters):
+                    self.net = instantiate(self.model).to(self.device)
 
-            param = self.split_train(
-                split_layer=config["split_layer"],
-                trainloader=self.trainloader,
-                device=self.device,
-                epochs=num_epochs,
-                learning_rate=self.learning_rate,
-                proximal_mu=config["proximal_mu"],
-                client_ip = self.ip,
-                frac = 1.0,
-            )
-            #self.disconnect()
-            return param, len(self.trainloader), {"is_straggler": False, "split":self.index}
+                self.set_parameters(parameters)
+
+                if not self.connected:
+                    self.connect(config['other_index'],config['other_ip'])
+
+                param = self.split_train(
+                    split_layer=config["split_layer"],
+                    trainloader=self.trainloader,
+                    device=self.device,
+                    epochs=num_epochs,
+                    learning_rate=self.learning_rate,
+                    client_ip = self.ip,
+                    frac = 1.0,
+                )
+                #self.disconnect()
+                return param, len(self.trainloader), {"is_straggler": False, "split":self.index}
 
     def evaluate(
         self, parameters: NDArrays, config: Dict[str, Scalar]
@@ -255,9 +262,7 @@ def gen_client_fn(
     indexes: Dict[str, str],
     ips: Dict[str, str],
     model: DictConfig,
-) -> Tuple[
-    Callable[[str], FlowerClient], DataLoader
-]:  # pylint: disable=too-many-arguments
+) -> Callable[[str], FlowerClient]:  # pylint: disable=too-many-arguments
     """Generates the client function that creates the Flower Clients.
 
     Parameters
@@ -305,15 +310,12 @@ def gen_client_fn(
 
         # Load model
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        net = instantiate(model).to(device)
 
-        # Note: each client gets a different trainloader/valloader, so each client
-        # will train and evaluate on their own unique data
+        #Load data
         trainloader = trainloaders[int(cid)]
         valloader = valloaders[int(cid)]
 
         return FlowerClient(
-            net,
             model,
             trainloader,
             valloader,
@@ -362,17 +364,19 @@ class FedFlowerClient(
     def fit(
         self, parameters: NDArrays, config: Dict[str, Scalar]
     ) -> Tuple[NDArrays, int, Dict]:
-        """Implements distributed fit function for a given client."""
+        """Implements distributed fit function for a given client.
+
+        At each round check if the client is a straggler,
+        if so, train less epochs (to simulate partial work)
+        if the client is told to be dropped (e.g. because not using
+        FedProx in the server), the fit method returns without doing
+        training.
+        This method always returns via the metrics (last argument being
+        is used by strategies other than FedProx to discard the update.
+        returned) whether the client is a straggler or not. This info
+        """
         self.set_parameters(parameters)
 
-        # At each round check if the client is a straggler,
-        # if so, train less epochs (to simulate partial work)
-        # if the client is told to be dropped (e.g. because not using
-        # FedProx in the server), the fit method returns without doing
-        # training.
-        # This method always returns via the metrics (last argument being
-        # returned) whether the client is a straggler or not. This info
-        # is used by strategies other than FedProx to discard the update.
         if (
             self.straggler_schedule[int(config["curr_round"]) - 1]
             and self.num_epochs > 1
@@ -460,7 +464,7 @@ def get_fed_client_fn(
         # Load model
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         net = instantiate(model).to(device)
-        client_name = client_names[cid]
+        client_name = client_names[int(cid)]
 
         return FedFlowerClient(
             net,
