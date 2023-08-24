@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union, Dict, Set
 
 class Clustering_Module:
     def __init__(self,
@@ -6,15 +6,22 @@ class Clustering_Module:
                  r_low:float,
                  r_high:float,
                  ):
-        self.flops = flops
-        self.client_number = len(flops)
+
+        self.flops_all = flops
+        self.client_number_all = len(flops)
         self.r_low = r_low
         self.r_high = r_high
 
+        self.flops = []
+        self.client_number = 0
         self.tier_high_cid= []
         self.tier_mid_cid = []
         self.tier_low_cid = []
 
+
+    def update(self, available_cids:List[str]):
+        self.flops = [self.flops_all[int(cid)] for cid in available_cids]
+        self.client_number = len(self.flops)
 
     def get_tiers(self, importance_sort:bool =True):
         x = sorted(flops)
@@ -30,9 +37,9 @@ class Clustering_Module:
             else:
                 self.tier_low_cid.append((idx,flop))
         if importance_sort:
-            self.importance_sort()
+            self._importance_sort()
 
-    def importance_sort(self):
+    def _importance_sort(self):
         self.tier_high_cid.sort(key= lambda x:x[1], reverse=True)
         self.tier_low_cid.sort(key=lambda x: x[1], reverse=False)
 
@@ -41,6 +48,68 @@ class Clustering_Module:
         print("Tier mid queue-->" ,self.tier_mid_cid)
         print("Tier low queue-->" ,self.tier_low_cid)
 
+    def straggler_cids(self):pass
+
+
+class Scheduler:
+    def __init__(self, r_low:float,r_high:float,schedule:str='round_robin'):
+        self.r_low = r_low
+        self.r_high = r_high
+        self.schedule = schedule
+        self.selected = []
+        self.unselected = []
+        self.unique = []
+        self.capacity = []
+        self.jobs = {}
+
+    def _update(self, selected_cids:List[str], unselected_cids:List[str], capcity:List[float], stragglers:Set):
+        self.selected = selected_cids.copy()
+        self.unselected = [cid for cid in unselected_cids if cid not in stragglers]
+        self.capacity = capcity
+        self.jobs={}
+
+    def cluster(self, x:List[Union[float,int]]):
+        y=sorted(x)
+        th_high = y[int(self.r_high * len(y))]
+        th_low  = y[int(self.r_low  * len(y))]
+        print(f"th_high:{th_high} and th_low:{th_low}")
+
+        for idx, val in enumerate(x):
+            if val>= th_high:
+                self.tier_high_cid.append((idx,val))
+            elif val >= th_low:
+                self.tier_mid_cid.append((idx,val))
+            else:
+                self.tier_low_cid.append((idx,val))
+
+    def get_mappings(self,
+                     selected_cids:List[str],
+                     unselected_cids:List[str],
+                     capacity:Dict[str, float],
+                     stragglers:Set[str],
+                     priority_sort=True
+                     ):
+
+        self._update(selected_cids, unselected_cids, capacity, stragglers,)
+
+        if priority_sort:
+            self.selected.sort(key= lambda x: capacity[x], reverse = False)
+            self.unselected.sort(key= lambda x: capacity[x], reverse = True)
+
+        if self.schedule == "round_robin":
+            jobs={}
+            lim = len(self.unselected)
+
+            for idx, cid in enumerate(self.selected):
+                if cid in stragglers:
+                    if self.unselected_cids[idx%lim] not in jobs:
+                        jobs[self.unselected[idx % lim]] = {cid}
+                    else:
+                        jobs[self.unselected[idx % lim]].add(cid)
+
+            return jobs, [*self.selected, *jobs.keys()]
+
+        else: return {}, []
 
 
 if __name__=='__main__':

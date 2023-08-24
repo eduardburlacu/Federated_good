@@ -21,6 +21,15 @@ from src.Delegated.Communication import Communicator
 from src.Delegated.split_learn import split_model, send_msg, recv_msg
 
 
+def timeit(func: Callable)-> Callable:
+    def wrapper(self, *args, **kwargs):
+        start = time.time()
+        func(self, *args, **kwargs)
+        end = time.time()
+        self.time = end - start
+
+    return wrapper
+
 class FlowerClient(
     fl.client.NumPyClient,
     Communicator
@@ -28,9 +37,11 @@ class FlowerClient(
 
     def __init__(
         self,
+        cid:str,
         model: DictConfig,
         trainloader: DataLoader,
         valloader: DataLoader,
+        datasize: float,
         device: torch.device,
         num_epochs: int,
         flop_rate:int,
@@ -39,17 +50,25 @@ class FlowerClient(
         index:str,
         ip_address:str,
     ):  # pylint: disable=too-many-arguments
+        self.cid = cid
         self.net = None
         self.model = model
         self.trainloader = trainloader
         self.valloader = valloader
         self.device = device
         self.num_epochs = num_epochs
+
         self.flop_rate = flop_rate
+        self.datasize = datasize
+        self.computation_frac:float = 1.0
+        self.mbps = None
+        self.time = None
+        self.capacity = None
+
         self.learning_rate = learning_rate
         self.straggler_schedule = straggler_schedule
         Communicator.__init__(self, index, ip_address)
-        # !!!!!!!!!!!!!!!!!! self.connect(server credentials)
+        # !!!!!!!!!!!! self.connect(server credentials)
 
     def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
         """Returns the parameters of the current net."""
@@ -61,7 +80,7 @@ class FlowerClient(
         state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
         self.net.load_state_dict(state_dict, strict=True)
 
-    def get_speed(self, config) -> float:
+    def get_speed(self, model_size:float):
         if self.connected:
             network_time_start = time.time()
             msg = ['MSG_TEST_NETWORK', self.net.cpu().state_dict()]
@@ -71,10 +90,10 @@ class FlowerClient(
             )
             msg = self.recv_msg(self.sock, 'MSG_TEST_NETWORK')[1]
             network_time_end = time.time()
-            network_speed = (2 * config.model_size * 8) / (network_time_end - network_time_start)  # Mbit/s
-            return network_speed
+            self.mbps = (2 * model_size * 8) / (network_time_end - network_time_start)  # Mbit/s
         else: #Use -1 to mark lack of connection
-            return -1.
+            self.mbps = -1.
+
 
     def split_train(
             self,
@@ -83,15 +102,14 @@ class FlowerClient(
             device: torch.device,
             epochs: int,
             learning_rate: float,
-            client_ip: str = '',
+            client_ip: str,
             frac: float = 1.0,
             momentum: float = 0.9
-    ):
+    )->None:
 
         self.net = split_model(self.net, split_layer)[0]
         global_params = [val.detach().clone() for val in self.net.parameters()]
         self.net.train()
-        # criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.SGD(
             self.net.parameters(),
             lr=learning_rate,
@@ -109,7 +127,6 @@ class FlowerClient(
                     smashed_activations = self.net(features)
                     # Transfer data to other device
                     msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER',
-                           str(client_ip),
                            split_layer,
                            proximal_term,
                            smashed_activations.cpu(),
@@ -123,7 +140,12 @@ class FlowerClient(
                     gradients = recv_msg(self.sock)[1].to(device)
                     smashed_activations.backward(gradients)
 
-        return self.get_parameters({})
+        msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER',
+               self.cid,
+               self.get_parameters({}),
+               len(self.trainloader)
+               ]
+        send_msg(self.sock,msg)
 
     def split_follower(
             self,
@@ -134,33 +156,40 @@ class FlowerClient(
     ):
         # Wait for forward prop
         msg = recv_msg(self.sock, 'MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER')
-        criterion = nn.CrossEntropyLoss()
-
-        client_ip, split_layer, proximal_term, smashed_activations, targets = msg[1:]
-        self.net = split_model(self.net, int(split_layer))[1]
-        self.net.train()
-        global_params = [val.detach().clone() for val in self.net.parameters()]
-        optimizer = torch.optim.SGD(
-            self.net.parameters(),
-            lr=learning_rate,
-            momentum=momentum,
-        )
-        smashed_activations, targets = smashed_activations.to(device), targets.to(device)
-        optimizer.zero_grad()
-
-        for local_weights, global_weights in zip(self.net.parameters(), global_params):
-            proximal_term += (local_weights - global_weights).norm(2)
-        output = self.net(smashed_activations)
-        loss = criterion(output, targets) + proximal_mu * proximal_term /2
-        loss.backward()
-        optimizer.step()
-        # Send gradients to client
-        msg = ['MSG_SERVER_GRADIENTS_SERVER_TO_CLIENT_' + str(client_ip), smashed_activations.grad]
-        send_msg(self.sock, msg)
-
-        return self.get_parameters({}), -1, {"split":client_ip}
 
 
+        if len(msg)==4:
+            cid, num_examples, ante_parameters = msg[1:]
+            return [*ante_parameters, *self.get_parameters({})], num_examples, {"split":cid}
+
+        else:
+            criterion = nn.CrossEntropyLoss()
+
+            split_layer, proximal_term, smashed_activations, targets = msg[1:]
+            self.net = split_model(self.net, int(split_layer))[1]
+            self.net.train()
+            global_params = [val.detach().clone() for val in self.net.parameters()]
+            optimizer = torch.optim.SGD(
+                self.net.parameters(),
+                lr=learning_rate,
+                momentum=momentum,
+            )
+            smashed_activations, targets = smashed_activations.to(device), targets.to(device)
+            optimizer.zero_grad()
+
+            for local_weights, global_weights in zip(self.net.parameters(), global_params):
+                proximal_term += (local_weights - global_weights).norm(2)
+            output = self.net(smashed_activations)
+            loss = criterion(output, targets) + proximal_mu * proximal_term /2
+            loss.backward()
+            optimizer.step()
+            # Send gradients to client
+            msg = ['MSG_SERVER_GRADIENTS_SERVER_TO_CLIENT', smashed_activations.grad]
+            send_msg(self.sock, msg)
+
+            return None
+
+    @timeit
     def fit(
         self, parameters: NDArrays, config: Dict[str, Scalar]
     ) -> Tuple[NDArrays, int, Dict]:
@@ -179,35 +208,47 @@ class FlowerClient(
         if self.net is None:
             self.net = instantiate(self.model).to(self.device)
 
-        if config['follower']:
-            return self.split_follower(
-                self.device,
-                self.learning_rate,
-                config["proximal_mu"]
-            )
+        self.set_parameters(parameters)
 
-        else:
-            if (
+        if (
                 self.straggler_schedule[int(config["curr_round"]) - 1]
                 and self.num_epochs > 1
-            ):
-                num_epochs = np.random.randint(1, self.num_epochs)
+        ):
+            num_epochs = np.random.randint(1, self.num_epochs)
+            self.computation_frac = num_epochs / self.num_epochs
 
-                if config["drop_client"]:
-                    # return without doing any training.
-                    # The flag in the metric will be used to tell the strategy
-                    # to discard the model upon aggregation
-                    return (
-                        self.get_parameters({}),
-                        len(self.trainloader),
-                        {"is_straggler": True},
-                    )
+            if config["drop_client"]:
+                # return without doing any training.
+                # The flag in the metric will be used to tell the strategy
+                # to discard the model upon aggregation
+                return (
+                    self.get_parameters({}),
+                    len(self.trainloader),
+                    {"is_straggler": True},
+                )
 
-            else:
-                num_epochs = self.num_epochs
+        else:
+            num_epochs = self.num_epochs
+            self.computation_frac = 1.
+
+        self.capacity = self.datasize * (1. - self.computation_frac)
+
+        if config['follower']:
+            #self.get_speed({})
+            #self.connect()
+            result = None
+            while result is None:
+                result= self.split_follower(
+                    self.device,
+                    self.learning_rate,
+                    config["proximal_mu"]
+                )
+            return result
+
+        else:
 
             if config["split_layer"] == len(list(self.net.children()))-1:  # No offloading training
-                self.set_parameters(parameters)
+
                 train(
                     self.net,
                     self.trainloader,
@@ -217,10 +258,11 @@ class FlowerClient(
                     proximal_mu=config["proximal_mu"],
                     frac= config["frac"]
                 )
-                return self.get_parameters({}), len(self.trainloader), {"is_straggler": False, "split":None}
+                return self.get_parameters({}), len(self.trainloader), {"is_straggler": False, "split": None, "next":self.straggler_schedule[int(config["curr_round"])]}
 
             else: # Offload a part of the training
-
+                # self.get_speed({})
+                # self.connect()
                 if len(list(self.net.children())) != len(parameters):
                     self.net = instantiate(self.model).to(self.device)
 
@@ -229,7 +271,7 @@ class FlowerClient(
                 if not self.connected:
                     self.connect(config['other_index'],config['other_ip'])
 
-                param = self.split_train(
+                self.split_train(
                     split_layer=config["split_layer"],
                     trainloader=self.trainloader,
                     device=self.device,
@@ -238,9 +280,11 @@ class FlowerClient(
                     client_ip = self.ip,
                     frac = 1.0,
                 )
+                #self.get_speed(config["model_size"])
                 #self.disconnect()
-                return param, len(self.trainloader), {"is_straggler": False, "split":self.index}
+                return [], len(self.trainloader), {"is_straggler": False, "split":self.cid, "next":self.straggler_schedule[int(config["curr_round"])] }
 
+    @timeit
     def evaluate(
         self, parameters: NDArrays, config: Dict[str, Scalar]
     ) -> Tuple[float, int, Dict]:
@@ -256,11 +300,12 @@ def gen_client_fn(
     num_epochs: int,
     trainloaders: List[DataLoader],
     valloaders: List[DataLoader],
+    datasizes: List[float],
     learning_rate: float,
     stragglers: float,
-    flop_rates: Dict[str, int],
-    indexes: Dict[str, str],
-    ips: Dict[str, str],
+    flop_rates: List[int],
+    indexes: List[str],
+    ips: List[str],
     model: DictConfig,
 ) -> Callable[[str], FlowerClient]:  # pylint: disable=too-many-arguments
     """Generates the client function that creates the Flower Clients.
@@ -316,16 +361,18 @@ def gen_client_fn(
         valloader = valloaders[int(cid)]
 
         return FlowerClient(
+            cid,
             model,
             trainloader,
             valloader,
+            datasizes[int(cid)],
             device,
             num_epochs,
-            flop_rates[cid],
+            flop_rates[int(cid)],
             learning_rate,
             stragglers_mat[int(cid)],
-            indexes[cid],
-            ips[cid],
+            indexes[int(cid)],
+            ips[int(cid)],
         )
 
     return client_fn
@@ -479,6 +526,3 @@ def get_fed_client_fn(
             min_num_samples
         )
     return client_fn
-
-if __name__=='__main__':
-    pass

@@ -5,7 +5,7 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 from flwr.common import (
     Metrics,
     #EvaluateIns,
-    EvaluateRes,
+    #EvaluateRes,
     FitIns,
     FitRes,
     MetricsAggregationFn,
@@ -17,11 +17,10 @@ from flwr.common import (
 )
 from flwr.common.logger import log
 from flwr.server.strategy.aggregate import weighted_loss_avg,aggregate
-from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
 from flwr.server.strategy import FedAvg
 
-from src.Delegated import utils
+from src.Delegated.ClientManager import CustomClientManager
 
 def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
     """Aggregation function for weighted average during evaluation.
@@ -77,6 +76,7 @@ class FedProx(FedAvg):
         fit_metrics_aggregation_fn: Optional[MetricsAggregationFn] = None,
         evaluate_metrics_aggregation_fn: Optional[MetricsAggregationFn] = None,
         proximal_mu: float,
+        agent
     ) -> None:
         """Federated Optimization strategy.
 
@@ -170,27 +170,17 @@ class FedProx(FedAvg):
             evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn,
         )
         self.proximal_mu = proximal_mu
+        self.stragglers = set()
+        self.capacities = {}
+        self.agent = agent
 
     def __repr__(self) -> str:
         rep = f"FedProx(accept_failures={self.accept_failures})"
         return rep
 
-    def evaluate(
-        self, server_round: int, parameters: Parameters
-    ) -> Optional[Tuple[float, Dict[str, Scalar]]]:
-        """Evaluate model parameters using an evaluation function."""
-        if self.evaluate_fn is None:
-            # No evaluation function provided
-            return None
-        parameters_ndarrays = parameters_to_ndarrays(parameters)
-        eval_res = self.evaluate_fn(server_round, parameters_ndarrays, {})
-        if eval_res is None:
-            return None
-        loss, metrics = eval_res
-        return loss, metrics
 
     def configure_fit(
-        self, server_round: int, parameters: Parameters, client_manager: ClientManager
+        self, server_round: int, parameters: Parameters, client_manager: CustomClientManager
     ) -> List[Tuple[ClientProxy, FitIns]]:
         """Configure the next round of training.
         Sends the proximal factor mu to the clients
@@ -200,19 +190,28 @@ class FedProx(FedAvg):
         sample_size, min_num_clients = self.num_fit_clients(
             client_manager.num_available()
         )
-        clients = client_manager.sample(
-            num_clients=sample_size, min_num_clients=min_num_clients
+        client_manager.register()
+        clients, jobs = client_manager.sample(
+            num_clients=sample_size,
+            min_num_clients=min_num_clients,
+            stragglers= self.stragglers,
+            capacity=self.capacities,
         )
+
         result=[]
         for client in clients:
-
             config = {}
             if self.on_fit_config_fn is not None:
                 # Custom fit config function provided
                 config = self.on_fit_config_fn(server_round)
 
+            config["curr_round"]= server_round
             config["proximal_mu"] = self.proximal_mu
-            config['tier']= utils.update_tier(client)
+            if client.cid in jobs:
+                config["follower"] = jobs[client.cid]
+                config["split_layer"] = self.agent.exploit() #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!RL INTEGRATION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            elif client.cid in self.stragglers:
+                config["split_layer"] = self.agent.exploit()
 
             result.append(
                 (client, FitIns(parameters, config))
@@ -227,6 +226,7 @@ class FedProx(FedAvg):
         failures: List[Union[Tuple[ClientProxy, FitRes], BaseException]],
     ) -> Tuple[Optional[Parameters], Dict[str, Scalar]]:
         """Aggregate fit results using weighted average."""
+
         if not results:
             return None, {}
         # Do not aggregate if there are failures and failures are not accepted
@@ -234,10 +234,16 @@ class FedProx(FedAvg):
             return None, {}
 
         # Convert results
-        weights_results = [
-            (parameters_to_ndarrays(fit_res.parameters), fit_res.num_examples)
-            for _, fit_res in results
-        ]
+        weights_results = []
+
+        for client_prox,fit_res in results:
+
+            weight = parameters_to_ndarrays(fit_res.parameters)
+            if fit_res.metrics["next"]==1:
+                self.stragglers.add(client_prox.cid)
+            if len(weight)>0:
+                weights_results.append((weight, fit_res.num_examples))
+
         parameters_aggregated = ndarrays_to_parameters(aggregate(weights_results))
 
         # Aggregate custom metrics if aggregation fn was provided
@@ -250,33 +256,3 @@ class FedProx(FedAvg):
 
         return parameters_aggregated, metrics_aggregated
 
-    def aggregate_evaluate(
-        self,
-        server_round: int,
-        results: List[Tuple[ClientProxy, EvaluateRes]],
-        failures: List[Union[Tuple[ClientProxy, EvaluateRes], BaseException]],
-    ) -> Tuple[Optional[float], Dict[str, Scalar]]:
-        """Aggregate evaluation losses using weighted average."""
-        if not results:
-            return None, {}
-        # Do not aggregate if there are failures and failures are not accepted
-        if not self.accept_failures and failures:
-            return None, {}
-
-        # Aggregate loss
-        loss_aggregated = weighted_loss_avg(
-            [
-                (evaluate_res.num_examples, evaluate_res.loss)
-                for _, evaluate_res in results
-            ]
-        )
-
-        # Aggregate custom metrics if aggregation fn was provided
-        metrics_aggregated = {}
-        if self.evaluate_metrics_aggregation_fn:
-            eval_metrics = [(res.num_examples, res.metrics) for _, res in results]
-            metrics_aggregated = self.evaluate_metrics_aggregation_fn(eval_metrics)
-        elif server_round == 1:  # Only log this warning once
-            log(WARNING, "No evaluate_metrics_aggregation_fn provided")
-
-        return loss_aggregated, metrics_aggregated

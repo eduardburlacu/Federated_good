@@ -19,7 +19,7 @@ class Attention(nn.Module):
         self.num_heads = num_heads
         self.embed_dim = embed_dim
         self.Query = base_net(input_size,dim1,dim2,embed_dim)
-        self.Key = base_net(input_size,dim1,dim2,embed_dim)
+        self.Key   = base_net(input_size,dim1,dim2,embed_dim)
         self.Value = base_net(input_size,dim1,dim2,embed_dim)
 
     def forward(self, *inputs)-> torch.Tensor:
