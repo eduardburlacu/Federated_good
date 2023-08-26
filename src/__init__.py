@@ -1,5 +1,6 @@
 import os
 
+DEFAULT_SERVER_ADDRESS = "[::]:8080"
 PROJECT_PATH = os.path.dirname(os.path.dirname(__file__))
 os.chdir(PROJECT_PATH)
 
