@@ -75,7 +75,7 @@ class FedProx(FedAvg):
         initial_parameters: Optional[Parameters] = None,
         fit_metrics_aggregation_fn: Optional[MetricsAggregationFn] = None,
         evaluate_metrics_aggregation_fn: Optional[MetricsAggregationFn] = None,
-        proximal_mu: float,
+        proximal_mu: float= 0.,
         agent
     ) -> None:
         """Federated Optimization strategy.
