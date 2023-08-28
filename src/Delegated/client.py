@@ -47,8 +47,8 @@ class FlowerClient(
         flop_rate:int,
         learning_rate: float,
         straggler_schedule: np.ndarray,
+        ip_address: str,
         index:str,
-        ip_address:str,
     ):  # pylint: disable=too-many-arguments
         self.cid = cid
         self.net = None
@@ -67,8 +67,8 @@ class FlowerClient(
 
         self.learning_rate = learning_rate
         self.straggler_schedule = straggler_schedule
-        Communicator.__init__(self, index, ip_address)
-        # !!!!!!!!!!!! self.connect(server credentials)
+        Communicator.__init__(self, ip_address, index)
+
 
     def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
         """Returns the parameters of the current net."""
