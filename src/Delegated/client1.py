@@ -1,15 +1,17 @@
 from signal import signal, SIGPIPE, SIG_DFL
+signal(SIGPIPE,SIG_DFL)
+import math
 import time
 import pickle
 import struct
 import socket
+import threading
 import logging
-
-signal(SIGPIPE,SIG_DFL)
+from models import Net
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-
+net = Net(10)
 class Communicator(object):
 	def __init__(self, ip_address, index ):
 		self.ip = ip_address
@@ -18,6 +20,21 @@ class Communicator(object):
 		self.connected = False
 		self.connection = None
 
+	def get_speed(self):
+
+		if self.connected:
+			network_time_start = time.time()
+			msg = ['MSG_TEST_NETWORK', net.cpu().state_dict()]
+			self.send_msg(
+				self.connection,
+				msg
+			)
+			msg = self.recv_msg(self.connection)[1]
+			network_time_end = time.time()
+			return (network_time_end - network_time_start)
+
+		else:  # Use -1 to mark lack of connection
+			return -1.
 
 	def connect(self,other_addr,other_port):
 		try:
@@ -65,6 +82,17 @@ class Communicator(object):
 		return msg
 
 	def start(self):
-		import threading
 		listen_thread = threading.Thread(target=self.listen)
 		listen_thread.start()
+
+
+if __name__=='__main__':
+	client1 = Communicator('127.0.0.1', 50123)
+	client1.listen()
+	print(client1.get_speed())
+
+	msg=['Wello Horld',7474]
+	client1.send_msg(client1.connection, msg)
+	print(client1.recv_msg(client1.connection))
+	client1.disconnect(client1.sock, init=False)
+

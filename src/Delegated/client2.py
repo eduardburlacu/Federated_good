@@ -1,14 +1,14 @@
 from signal import signal, SIGPIPE, SIG_DFL
+signal(SIGPIPE,SIG_DFL)
+
 import time
 import pickle
 import struct
 import socket
+import threading
 import logging
-
-signal(SIGPIPE,SIG_DFL)
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
 
 class Communicator(object):
 	def __init__(self, ip_address, index ):
@@ -16,32 +16,31 @@ class Communicator(object):
 		self.index = index
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.connected = False
-		self.connection = None
-
 
 	def connect(self,other_addr,other_port):
-		try:
-			#logger.info(f'Connecting to {other_addr}:{other_port}.')
-			self.sock.connect((other_addr, other_port))
-			self.connected = True
-			print(f"Connected to {other_addr}:{other_port}")
-		except socket.error as e:
-			logger.error(e)
+		while not self.connected:
+			try:
+				#logger.info(f'Connecting to {other_addr}:{other_port}.')
+				self.sock.connect((other_addr, other_port))
+				self.connected = True
+				print(f"Connected to {other_addr}:{other_port}")
+			except: continue
+
 
 	def listen(self):
 		self.sock.bind((self.ip, self.index))
 		self.sock.listen(1)
 		print(f"Listening for connections on {self.ip}:{self.index}")
 
-		while not self.connected:
-			self.connection, address = self.sock.accept()
+		while True:
+			connection, address = self.sock.accept()
 			print(f"Accepted connection from {address}")
-			self.connected =True
+			self.connected = True
 
-	def disconnect(self, other_sock:socket.SocketType, init=True):
+	def disconnect(self, sock:socket.SocketType, init=True):
 		if self.connected and init:
-			if init:
-				self.send_msg(other_sock, f'Finished the transfer {str(other_sock.getpeername()[0])}:{str(other_sock.getpeername()[1])} \n Closing the connection...')
+			msg =[f'Finished the transfer \n Closing the connection...']
+			self.send_msg(sock, msg)
 			self.sock.close()
 			self.connected = False
 
@@ -65,6 +64,20 @@ class Communicator(object):
 		return msg
 
 	def start(self):
-		import threading
 		listen_thread = threading.Thread(target=self.listen)
 		listen_thread.start()
+
+
+if __name__=='__main__':
+	client2 = Communicator('127.0.0.1',30194)
+	client2.connect('127.0.0.1', 50123)
+	print(client2.recv_msg(client2.sock))
+	client2.send_msg(client2.sock,['MSG_TEST_NETWORK','GOTCHA'])
+
+
+	print(client2.recv_msg(client2.sock))
+	msg= ['TEST PASSED',8532732957823]
+	client2.send_msg(client2.sock,msg)
+	client2.disconnect(client2.sock)
+	print(client2.sock)
+
