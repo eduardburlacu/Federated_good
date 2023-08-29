@@ -75,7 +75,7 @@ class FedAvgWithStragglerDrop(FedAvg):
 
 
 # flake8: noqa: E501
-class FedProx_offload(FedAvg):
+class FedProxOffload(FedAvg):
     """Offloading FedProx strategy implementation."""
 
     # pylint: disable=too-many-arguments,too-many-instance-attributes,line-too-long
