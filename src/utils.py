@@ -1,10 +1,11 @@
 """Contains utility functions for CNN FL on MNIST."""
 
 import os
+import time
 import pickle
 from pathlib import Path
 from secrets import token_hex
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, Callable
 import importlib.util
 
 import random
@@ -21,6 +22,15 @@ def set_random_seed(seed: int):
     torch.manual_seed(123 + seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(123 + seed) # Set seed for CUDA if available
+
+def timeit(func: Callable)-> Callable:
+    def wrapper(self, *args, **kwargs):
+        start = time.time()
+        func(self, *args, **kwargs)
+        end = time.time()
+        self.time = end - start
+
+    return wrapper
 
 
 def plot_metric_from_history(
@@ -130,3 +140,4 @@ def importer(filename:str):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+

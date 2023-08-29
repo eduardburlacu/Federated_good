@@ -1,45 +1,76 @@
 """Defines the MNIST Flower Client and a function to instantiate it."""
 
-
+import time
 from collections import OrderedDict
 from typing import Callable, Dict, List, Tuple
 
 import flwr as fl
 import numpy as np
 import torch
+import torch.nn as nn
 from flwr.common.typing import NDArrays, Scalar
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
-from pathlib import Path
-from src.dataset import load_datasets
+
 from src.federated_dataset import load_data
 from src.models import test, train
+from src.Communication import Communicator
+from src.split_learn import split_model
+from src.utils import timeit
+
 
 class FlowerClient(
-    fl.client.NumPyClient
+    fl.client.NumPyClient,
+    Communicator
 ):  # pylint: disable=too-many-instance-attributes
-    """Standard Flower client for CNN training."""
 
     def __init__(
         self,
-        net: torch.nn.Module,
+        cid:str,
+        model:DictConfig,
         trainloader: DataLoader,
         valloader: DataLoader,
-        datasize:float,
         device: torch.device,
         num_epochs: int,
         learning_rate: float,
         straggler_schedule: np.ndarray,
+        ip_address:str,
+        index:int,
     ):  # pylint: disable=too-many-arguments
-        self.net = net
+        '''
+        Implements a unique FL participant.
+
+        :param cid: Unique identifier as str(integer)
+        :param model: Neural Network class to be instantiated for neural network
+        :param trainloader: Torch Dataloader for training
+        :param valloader: Torch Dataloader for validation
+        :param device: Torch device for training
+        :param num_epochs: Number of local epochs to be ideally performed locally(on client)
+        :param learning_rate: Local learning rate
+        :param straggler_schedule: Sets a random schedule in which a device is a straggler with probability p, performing a random fraction of training
+        :param ip_address: Client socket ip address (defaulted as the local address for a local simulation)
+        :param index: Port number for client socket
+        '''
+        self.cid = cid
+        self.model =model
+        self.net = None
+
         self.trainloader = trainloader
         self.valloader = valloader
-        self.datasize = datasize
         self.device = device
         self.num_epochs = num_epochs
         self.learning_rate = learning_rate
+
         self.straggler_schedule = straggler_schedule
+        self.computation_frac = 1.0
+        self.mbps = -1.
+
+        Communicator.__init__(
+            self,
+            ip_address=ip_address,
+            index=index
+        )
 
     def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
         """Returns the parameters of the current net."""
@@ -51,10 +82,137 @@ class FlowerClient(
         state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
         self.net.load_state_dict(state_dict, strict=True)
 
+    def get_speed(self, model_size:float,emitter=True):
+        """
+        Computes the transfer rate (MBPS), transmission time back and forth
+        :param model_size:
+        :param emitter:
+        :return:
+        """
+        if self.connected and self.net:
+            if emitter:
+                start = time.time()
+                msg = [
+                    'MSG_TEST_NETWORK',
+                    self.net.cpu().state_dict()
+                ]
+                self.send_msg(sock=self.to_socket(),msg=msg,)
+                msg = self.recv_msg(sock=self.to_socket())
+                end = time.time()
+                self.mbps = (2 * model_size * 8) / (end - start), end-start  # Mbit/s and s metrics for speed
+            else:
+                #wait for input
+                msg = self.recv_msg(sock=self.to_socket())
+                #send back
+                self.send_msg(sock=self.to_socket(),msg=msg,)
+        else:
+            self.mbps = -1.
+
+    def split_train(
+            self,
+            split_layer:int,
+            frac: float = 1.0,
+            momentum: float = 0.9
+    )->None:
+
+        if self.net:
+            self.net = split_model(net=self.net, n1= split_layer)[0]
+
+        else: raise RuntimeError('Model missing in split train.')
+
+        global_parms = [val.detach().clone() for val in self.net.parameters()]
+        self.net.train()
+
+        optimizer = torch.optim.SGD(
+            self.net.parameters(),
+            lr=self.learning_rate,
+            momentum=momentum,
+        )
+
+        for e in range(self.num_epochs):
+            for batch_idx, (features, targets) in enumerate(self.trainloader):
+                if batch_idx<= int(frac* len(self.trainloader)):
+                    features, targets = features.to(self.device), targets.to(self.device)
+                    optimizer.zero_grad()
+                    proximal_term = 0.0
+                    for local_weights, global_weights in zip(self.net.parameters(), global_parms):
+                        proximal_term += (local_weights - global_weights).norm(2)
+                    smashed_activations = self.net(features)
+                    # Transfer data to other device
+                    msg = ["MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER",
+                           split_layer,
+                           proximal_term,
+                           smashed_activations.cpu(),
+                           targets.cpu()
+                           ]
+                    self.send_msg(
+                        sock=self.to_socket(),
+                        msg=msg,
+                    )
+                    # Wait for backpropagation
+                    gradients = self.recv_msg(self.to_socket())[1].to(self.device)
+                    smashed_activations.backward(gradients)
+
+        msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER',
+               self.cid,
+               self.get_parameters({}),
+               len(self.trainloader),
+               ]
+        self.send_msg(sock=self.to_socket(), msg=msg)
+
+    def split_follower(self, straggler_next, proximal_mu, momentum: float = 0.9):
+
+        # Wait for forward prop
+        msg = self.recv_msg(
+            sock= self.to_socket(),
+            expect_msg_type='MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER'
+        )
+
+        if len(msg)==4:
+            cid, ante_parameters ,num_examples = msg[1:]
+            return ([*ante_parameters, *self.get_parameters({})],
+                    num_examples,
+                    { "is_straggler": False,
+                      "split": cid,
+                      "next": straggler_next }
+                    )
+        else:
+            criterion = nn.CrossEntropyLoss()
+            split_layer, proximal_term, smashed_activations, targets = msg[1:]
+            self.net.train()
+            global_params = [val.detach().clone() for val in self.net.parameters()]
+
+            optimizer = torch.optim.SGD(
+                self.net.parameters(),
+                lr=self.learning_rate,
+                momentum=momentum,
+            )
+            smashed_activations, targets = smashed_activations.to(self.device), targets.to(self.device)
+            optimizer.zero_grad()
+            for local_weights, global_weights in zip(self.net.parameters(), global_params):
+                proximal_term += (local_weights - global_weights).norm(2)
+            output = self.net(smashed_activations)
+            loss = criterion(output, targets) + proximal_mu * proximal_term /2
+            loss.backward()
+            optimizer.step()
+            # Send gradients to client
+            msg = [
+                'MSG_SERVER_GRADIENTS_SERVER_TO_CLIENT',
+                smashed_activations.grad
+            ]
+            self.send_msg(sock=self.to_socket(), msg=msg)
+
+            return None
+
+    @timeit
     def fit(
         self, parameters: NDArrays, config: Dict[str, Scalar]
     ) -> Tuple[NDArrays, int, Dict]:
         """Implements distributed fit function for a given client."""
+
+        if self.net is None:
+            self.net = instantiate(self.model).to(self.device)
+
         self.set_parameters(parameters)
 
         if (
@@ -62,28 +220,81 @@ class FlowerClient(
             and self.num_epochs > 1
         ):
             num_epochs = np.random.randint(1, self.num_epochs)
+            self.computation_frac = num_epochs / self.num_epochs
 
             if config["drop_client"]:
                 # return without doing any training.
                 return (
                     self.get_parameters({}),
                     len(self.trainloader),
-                    {"is_straggler": True},
+                    {"is_straggler": True,
+                     "split":None,
+                     "next": self.straggler_schedule[config["curr_round"]]
+                     }
                 )
 
         else:
             num_epochs = self.num_epochs
+            self.computation_frac = 1.0
 
-        train(
-            self.net,
-            self.trainloader,
-            self.device,
-            epochs=num_epochs,
-            learning_rate=self.learning_rate,
-            proximal_mu=config["proximal_mu"],
-        )
+        if config["follower"]:
+            #Connection to straggler
+            if not self.connected:
+                self.connect(
+                    other_addr=self.ip,
+                    other_port=int(config["port"])
+                )
 
-        return self.get_parameters({}), len(self.trainloader), {"is_straggler": False}
+            result = None
+            while result is None:
+                result = self.split_follower(
+                    straggler_next=self.straggler_schedule[config["curr_round"]],
+                    proximal_mu=config["proximal_mu"]
+                )
+            self.disconnect(self.sock)
+
+            return result
+
+        else:
+            # Independent training
+            if config["split_layer"] == len(list(self.net.children())) - 1:  # No offloading training
+                train(
+                    self.net,
+                    self.trainloader,
+                    self.device,
+                    epochs=num_epochs,
+                    learning_rate=self.learning_rate,
+                    proximal_mu=config["proximal_mu"],
+                )
+
+                return self.get_parameters({}), len(self.trainloader), {"is_straggler": False,
+                                                                        "split": None,
+                                                                        "next":self.straggler_schedule[config["curr_round"]]}
+
+            # Offload a part of the training
+            else:
+                # Wait for connection
+                if not self.connected:
+                    self.listen()
+
+                if len(list(self.net.children())) != len(parameters):
+                    self.net = instantiate(self.model).to(self.device)
+
+                self.set_parameters(parameters)
+
+                self.split_train(
+                    split_layer=config["split_layer"],
+                    frac = config["frac"],
+                )
+
+                self.disconnect(self.sock)
+
+                return ([], len(self.trainloader), {
+                    "is_straggler": False,
+                    "split":self.cid,
+                    "next":self.straggler_schedule[config["curr_round"]]
+                })
+
 
     def evaluate(
         self, parameters: NDArrays, config: Dict[str, Scalar]
@@ -104,6 +315,8 @@ def gen_client_fn(
     learning_rate: float,
     stragglers: float,
     model: DictConfig,
+    ip_address:str,
+    index:int
 ) -> Callable[[str], FlowerClient]:  # pylint: disable=too-many-arguments
     """Generates the client function that creates the Flower Clients.
 
@@ -149,7 +362,6 @@ def gen_client_fn(
 
         # Load model
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        net = instantiate(model).to(device)
 
         # Note: each client gets a different trainloader/valloader, so each client
         # will train and evaluate on their own unique data
@@ -157,14 +369,16 @@ def gen_client_fn(
         valloader = valloaders[int(cid)]
 
         return FlowerClient(
-            net,
-            trainloader,
-            valloader,
-            datasizes[int(cid)],
-            device,
-            num_epochs,
-            learning_rate,
-            stragglers_mat[int(cid)],
+            cid=cid,
+            model=model,
+            trainloader=trainloader,
+            valloader=valloader,
+            device=device,
+            num_epochs=num_epochs,
+            learning_rate=learning_rate,
+            straggler_schedule=stragglers_mat[int(cid)],
+            ip_address=ip_address,
+            index= index
         )
 
     return client_fn
@@ -301,7 +515,7 @@ def get_fed_client_fn(
         # Load model
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         net = instantiate(model).to(device)
-        client_name = client_names[cid]
+        client_name = client_names[int(cid)]
 
         return FedFlowerClient(
             net,
