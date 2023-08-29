@@ -1,4 +1,4 @@
-from typing import List, Union, Dict, Set
+from typing import List, Tuple, Union, Dict, Set
 
 class Clustering_Module:
     def __init__(self,
@@ -88,7 +88,7 @@ class Scheduler:
                      capacity:Dict[str, float],
                      stragglers:Set[str],
                      priority_sort=True
-                     ):
+                     )-> Tuple[Dict[str, int], Dict[str,str], List[str]]:
 
         self._update(selected_cids, unselected_cids, capacity, stragglers,)
 
@@ -98,18 +98,20 @@ class Scheduler:
 
         if self.schedule == "round_robin":
             jobs={}
+            mappings={}
             lim = len(self.unselected)
 
             for idx, cid in enumerate(self.selected):
                 if cid in stragglers:
+                    mappings[cid] = self.unselected_cids[idx%lim]
                     if self.unselected_cids[idx%lim] not in jobs:
-                        jobs[self.unselected[idx % lim]] = {cid}
+                        jobs[self.unselected[idx % lim]] = 1
                     else:
-                        jobs[self.unselected[idx % lim]].add(cid)
+                        jobs[self.unselected[idx % lim]]+=1
 
-            return jobs, [*self.selected, *jobs.keys()]
+            return jobs, mappings,[*self.selected, *jobs.keys()]
 
-        else: return {}, []
+        else: return {}, {}, []
 
 
 if __name__=='__main__':

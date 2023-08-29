@@ -69,8 +69,16 @@ class FlowerClient(
         Communicator.__init__(
             self,
             ip_address=ip_address,
-            index=index
+            index=index,
         )
+
+    def get_properties(self, config: Dict[str, Scalar]) -> Dict[str, Scalar]:
+        properties = {
+            'ip_address': self.ip,
+            "port": self.index,
+            "mbps": self.mbps
+        }
+        return properties
 
     def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
         """Returns the parameters of the current net."""
@@ -111,6 +119,7 @@ class FlowerClient(
     def split_train(
             self,
             split_layer:int,
+            num_epochs:int,
             frac: float = 1.0,
             momentum: float = 0.9
     )->None:
@@ -129,7 +138,7 @@ class FlowerClient(
             momentum=momentum,
         )
 
-        for e in range(self.num_epochs):
+        for e in range(num_epochs):
             for batch_idx, (features, targets) in enumerate(self.trainloader):
                 if batch_idx<= int(frac* len(self.trainloader)):
                     features, targets = features.to(self.device), targets.to(self.device)
@@ -238,12 +247,10 @@ class FlowerClient(
             self.computation_frac = 1.0
 
         if config["follower"]:
-            #Connection to straggler
+
             if not self.connected:
-                self.connect(
-                    other_addr=self.ip,
-                    other_port=int(config["port"])
-                )
+                # Wait for connection to straggler(s)
+                self.listen(config["follower"])
 
             result = None
             while result is None:
@@ -275,7 +282,10 @@ class FlowerClient(
             else:
                 # Wait for connection
                 if not self.connected:
-                    self.listen()
+                    self.connect(
+                        other_addr=self.ip,
+                        other_port=config["port"]
+                    )
 
                 if len(list(self.net.children())) != len(parameters):
                     self.net = instantiate(self.model).to(self.device)
@@ -284,6 +294,7 @@ class FlowerClient(
 
                 self.split_train(
                     split_layer=config["split_layer"],
+                    num_epochs=num_epochs,
                     frac = config["frac"],
                 )
 
@@ -360,11 +371,8 @@ def gen_client_fn(
     def client_fn(cid: str) -> FlowerClient:
         """Create a Flower client representing a single organization."""
 
-        # Load model
+        # Load data and device
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-        # Note: each client gets a different trainloader/valloader, so each client
-        # will train and evaluate on their own unique data
         trainloader = trainloaders[int(cid)]
         valloader = valloaders[int(cid)]
 

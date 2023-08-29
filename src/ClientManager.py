@@ -27,7 +27,8 @@ class OffloadClientManager(SimpleClientManager):
         capacity:Dict[str, float] = None
     ) -> Tuple[
         List[ClientProxy],
-        Dict[str,str]
+        Dict[str, int],
+        Dict[str, int]
     ]:
         """Sample a number of Flower ClientProxy instances."""
         # Block until at least num_clients are connected.
@@ -49,7 +50,7 @@ class OffloadClientManager(SimpleClientManager):
                 len(available_cids),
                 num_clients,
             )
-            return [],{}
+            return [],{},{}
 
         random.shuffle(available_cids)
         sampled_cids = available_cids[:num_clients]
@@ -57,13 +58,19 @@ class OffloadClientManager(SimpleClientManager):
 
 
         if with_followers:      #Include followers
-            jobs, selected_cids= self.scheduler.get_mappings(
+            jobs, mappings, selected_cids= self.scheduler.get_mappings(
                 selected_cids=sampled_cids,
                 unselected_cids=unsampled_cids,
                 capacity=capacity,
                 stragglers=stragglers,
                 priority_sort=with_followers,
             )
-            return [self.clients[cid] for cid in selected_cids], jobs
 
-        else: return [self.clients[cid] for cid in sampled_cids], {}
+            ports = {
+                straggler: int(self.clients[follower].properties["port"])
+                for straggler, follower in mappings.items()
+            }
+
+            return [self.clients[cid] for cid in selected_cids], jobs, ports
+
+        else: return [self.clients[cid] for cid in sampled_cids], {}, {}

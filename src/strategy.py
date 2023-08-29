@@ -82,6 +82,7 @@ class FedProx_offload(FedAvg):
     def __init__(
         self,
         *,
+        model_num_layers: int,
         fraction_fit: float = 1.0,
         fraction_evaluate: float = 1.0,
         min_fit_clients: int = 2,
@@ -124,6 +125,7 @@ class FedProx_offload(FedAvg):
             fit_metrics_aggregation_fn=fit_metrics_aggregation_fn,
             evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn,
         )
+        self.model_num_layers = model_num_layers
         self.proximal_mu = proximal_mu
         self.stragglers = set()
         self.capacities = {}
@@ -148,7 +150,7 @@ class FedProx_offload(FedAvg):
             client_manager.num_available()
         )
         client_manager.register()
-        clients, jobs = client_manager.sample(
+        clients, jobs, ports = client_manager.sample(
             num_clients=sample_size,
             min_num_clients=min_num_clients,
             stragglers= self.stragglers,
@@ -164,12 +166,14 @@ class FedProx_offload(FedAvg):
 
             config["curr_round"]= server_round
             config["proximal_mu"] = self.proximal_mu
-
+            config["split_layer"] = self.model_num_layers - 1
             if client.cid in jobs: #follower configuration
                 config["follower"] = jobs[client.cid]
                 config["split_layer"] = self.agent.exploit()
             elif client.cid in self.stragglers: #straggler configuration
+                config["port"] = ports[client.cid]
                 config["split_layer"] = self.agent.exploit()
+
 
             result.append(
                 (client, FitIns(parameters, config))

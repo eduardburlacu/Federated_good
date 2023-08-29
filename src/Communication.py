@@ -28,9 +28,9 @@ class Communicator(object):
 		except socket.error as e:
 			logger.error(e)
 
-	def listen(self):
+	def listen(self, n:int=1):
 		self.sock.bind((self.ip, self.index))
-		self.sock.listen(1)
+		self.sock.listen(n)
 		print(f"Listening for connections on {self.ip}:{self.index}")
 
 		while not self.connected:
