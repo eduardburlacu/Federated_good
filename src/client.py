@@ -1,5 +1,3 @@
-"""Defines the MNIST Flower Client and a function to instantiate it."""
-
 import time
 from collections import OrderedDict
 from typing import Callable, Dict, List, Tuple

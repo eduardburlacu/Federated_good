@@ -23,6 +23,9 @@ def set_random_seed(seed: int):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(123 + seed) # Set seed for CUDA if available
 
+def server_address(ip:str,host:int)->str:
+    return ''.join([ip,":",str(host)])
+
 def timeit(func: Callable)-> Callable:
     def wrapper(self, *args, **kwargs):
         start = time.time()
