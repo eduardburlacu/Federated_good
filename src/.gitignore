@@ -1,5 +1,5 @@
-../FedProx
-../outputs
+../FedProx/
+../outputs/
 playground.ipynb
-../multirun
-../Dataset/data
+../multirun/
+../Dataset/data/

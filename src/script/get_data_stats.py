@@ -8,7 +8,7 @@ src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 sys.path.insert(0, src_path)
 
 from src import GOD_CLIENT_NAME
-from src.federated_dataset import FederatedDataset
+from src.Dataset.federated_dataset import FederatedDataset
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Stats")

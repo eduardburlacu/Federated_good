@@ -13,7 +13,8 @@ src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 sys.path.insert(0, src_path)
 
 from src import PATH_src, GOD_CLIENT_NAME
-from src import client, server, utils, dataset, federated_dataset
+from src import client, server, utils
+from src.Dataset import dataset, federated_dataset
 from src.utils import save_results_as_pickle
 
 @hydra.main(config_path=PATH_src["conf"], config_name="config", version_base=None)

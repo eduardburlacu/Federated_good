@@ -7,7 +7,7 @@ import torch
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader, random_split
 
-from src.dataset_preparation import _partition_data
+from src.Dataset.dataset_preparation import _partition_data
 
 
 def load_datasets(  # pylint: disable=too-many-arguments

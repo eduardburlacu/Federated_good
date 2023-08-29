@@ -13,7 +13,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 
-from src.federated_dataset import load_data
+from src.Dataset.federated_dataset import load_data
 from src.models import test, train
 from src.Communication import Communicator
 from src.split_learn import split_model

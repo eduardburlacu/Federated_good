@@ -15,8 +15,8 @@ src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 sys.path.insert(0, src_path)
 
 from src import DEFAULT_SERVER_ADDRESS
-from src.Delegated.strategy import FedProx
-from src.Delegated.ClientManager import CustomClientManager
+from src.strategy import FedProx_offload
+from src.ClientManager import OffloadClientManager
 from src.Delegated import PPO
 from src.utils import set_random_seed
 
@@ -32,7 +32,7 @@ def main()->None:
     parser.add_argument("--seed", required=False,type=int, default=0, help="Seed to be used for reproducibility.")
     args = parser.parse_args()
     set_random_seed(args.seed)
-    client_manager = CustomClientManager()
+    client_manager = OffloadClientManager()
 
     # Initialize trained RL agent
     if offload:
@@ -50,7 +50,7 @@ def main()->None:
 
     else: agent = None
 
-    strategy = FedProx(agent=agent)
+    strategy = FedProx_offload(10,agent=agent)
 
     server = flwr.server.Server(
         client_manager = client_manager,
