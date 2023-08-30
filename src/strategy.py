@@ -8,6 +8,8 @@ from flwr.common import (
     #EvaluateRes,
     FitIns,
     FitRes,
+    GetPropertiesIns,
+    GetPropertiesRes,
     MetricsAggregationFn,
     NDArrays,
     Parameters,
@@ -168,11 +170,12 @@ class FedProxOffload(FedAvg):
             if cid in jobs: #follower configuration
                 config["follower"] = jobs[cid]
                 config["split_layer"] = self.agent.exploit()
-            elif client.get_properties()
-                ["straggler"]: #straggler configuration
-                config["port"] = ports[cid]
-                config["split_layer"] = self.agent.exploit()
-
+            else: #straggler configuration
+                res:GetPropertiesRes = client.get_properties(GetPropertiesIns({"curr_round":server_round}),timeout=None)
+                if res.properties["straggler"]==1:
+                    config["port"] = ports[cid]
+                    config["split_layer"] = self.agent.exploit()
+                del res
 
             result.append(
                 (client, FitIns(parameters, config))
