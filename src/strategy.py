@@ -127,8 +127,6 @@ class FedProxOffload(FedAvg):
         )
         self.model_num_layers = model_num_layers
         self.proximal_mu = proximal_mu
-        self.stragglers = set()
-        self.capacities = {}
         self.agent = agent
 
     def __repr__(self) -> str:
@@ -149,16 +147,15 @@ class FedProxOffload(FedAvg):
         sample_size, min_num_clients = self.num_fit_clients(
             client_manager.num_available()
         )
-        client_manager.register()
-        clients, jobs, ports = client_manager.sample(
-            num_clients=sample_size,
-            min_num_clients=min_num_clients,
-            stragglers= self.stragglers,
-            capacity=self.capacities,
+
+        clients, clients_cid, jobs, ports = client_manager.sample(
+            num_clients= sample_size,
+            min_num_clients= min_num_clients,
+            with_followers= True,
         )
 
         result=[]
-        for client in clients:
+        for cid, client in zip(clients_cid, clients):
             config = {}
             if self.on_fit_config_fn is not None:
                 # Custom fit config function provided
@@ -167,11 +164,13 @@ class FedProxOffload(FedAvg):
             config["curr_round"]= server_round
             config["proximal_mu"] = self.proximal_mu
             config["split_layer"] = self.model_num_layers - 1
-            if client.cid in jobs: #follower configuration
-                config["follower"] = jobs[client.cid]
+
+            if cid in jobs: #follower configuration
+                config["follower"] = jobs[cid]
                 config["split_layer"] = self.agent.exploit()
-            elif client.cid in self.stragglers: #straggler configuration
-                config["port"] = ports[client.cid]
+            elif client.get_properties()
+                ["straggler"]: #straggler configuration
+                config["port"] = ports[cid]
                 config["split_layer"] = self.agent.exploit()
 
 
@@ -201,8 +200,6 @@ class FedProxOffload(FedAvg):
         for client_prox,fit_res in results:
 
             weight = parameters_to_ndarrays(fit_res.parameters)
-            if fit_res.metrics["next"]==1:
-                self.stragglers.add(client_prox.cid)
             if len(weight)>0:
                 weights_results.append((weight, fit_res.num_examples))
 
@@ -217,7 +214,3 @@ class FedProxOffload(FedAvg):
             log(WARNING, "No fit_metrics_aggregation_fn provided")
 
         return parameters_aggregated, metrics_aggregated
-
-
-
-

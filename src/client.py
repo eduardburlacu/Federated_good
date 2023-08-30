@@ -33,6 +33,7 @@ class FlowerClient(
         num_epochs: int,
         learning_rate: float,
         straggler_schedule: np.ndarray,
+        flops:int,
         ip_address:str,
         index:int,
     ):  # pylint: disable=too-many-arguments
@@ -52,17 +53,21 @@ class FlowerClient(
         '''
         self.cid = cid
         self.model =model
-        self.net = None
-
+        self.net = instantiate(self.model).to(device)
         self.trainloader = trainloader
         self.valloader = valloader
         self.device = device
         self.num_epochs = num_epochs
-        self.learning_rate = learning_rate
 
+        self.learning_rate = learning_rate
         self.straggler_schedule = straggler_schedule
+
         self.computation_frac = 1.0
+        self.flops = flops
         self.mbps = -1.
+
+        self.capacity = None
+        self.time = 0.
 
         Communicator.__init__(
             self,
@@ -71,10 +76,15 @@ class FlowerClient(
         )
 
     def get_properties(self, config: Dict[str, Scalar]) -> Dict[str, Scalar]:
+        #Update capacity
+        self.capacity = max(self.mbps / self.flops, 0.0)
+
         properties = {
-            'ip_address': self.ip,
             "port": self.index,
-            "mbps": self.mbps
+            "mbps": self.mbps,
+            "time": self.time,
+            "straggler": self.straggler_schedule[int(config["curr_round"])],
+            "capacity":self.capacity
         }
         return properties
 
@@ -91,9 +101,6 @@ class FlowerClient(
     def get_speed(self, model_size:float,emitter=True):
         """
         Computes the transfer rate (MBPS), transmission time back and forth
-        :param model_size:
-        :param emitter:
-        :return:
         """
         if self.connected and self.net:
             if emitter:
@@ -167,7 +174,7 @@ class FlowerClient(
                ]
         self.send_msg(sock=self.to_socket(), msg=msg)
 
-    def split_follower(self, straggler_next, proximal_mu, momentum: float = 0.9):
+    def split_follower(self, proximal_mu, momentum: float = 0.9):
 
         # Wait for forward prop
         msg = self.recv_msg(
@@ -180,8 +187,7 @@ class FlowerClient(
             return ([*ante_parameters, *self.get_parameters({})],
                     num_examples,
                     { "is_straggler": False,
-                      "split": cid,
-                      "next": straggler_next }
+                      "split": cid, }
                     )
         else:
             criterion = nn.CrossEntropyLoss()
@@ -217,9 +223,6 @@ class FlowerClient(
     ) -> Tuple[NDArrays, int, Dict]:
         """Implements distributed fit function for a given client."""
 
-        if self.net is None:
-            self.net = instantiate(self.model).to(self.device)
-
         self.set_parameters(parameters)
 
         if (
@@ -252,10 +255,8 @@ class FlowerClient(
 
             result = None
             while result is None:
-                result = self.split_follower(
-                    straggler_next=self.straggler_schedule[config["curr_round"]],
-                    proximal_mu=config["proximal_mu"]
-                )
+                result = self.split_follower(proximal_mu=config["proximal_mu"])
+
             self.disconnect(self.sock)
 
             return result
@@ -271,10 +272,8 @@ class FlowerClient(
                     learning_rate=self.learning_rate,
                     proximal_mu=config["proximal_mu"],
                 )
-
                 return self.get_parameters({}), len(self.trainloader), {"is_straggler": False,
-                                                                        "split": None,
-                                                                        "next":self.straggler_schedule[config["curr_round"]]}
+                                                                        "split": None,}
 
             # Offload a part of the training
             else:
@@ -301,7 +300,6 @@ class FlowerClient(
                 return ([], len(self.trainloader), {
                     "is_straggler": False,
                     "split":self.cid,
-                    "next":self.straggler_schedule[config["curr_round"]]
                 })
 
 
@@ -320,12 +318,11 @@ def gen_client_fn(
     num_epochs: int,
     trainloaders: List[DataLoader],
     valloaders: List[DataLoader],
-    datasizes: List[float],
     learning_rate: float,
     stragglers: float,
     model: DictConfig,
     ip_address:str,
-    index:int
+    index_head:int = 50000
 ) -> Callable[[str], FlowerClient]:  # pylint: disable=too-many-arguments
     """Generates the client function that creates the Flower Clients.
 
@@ -373,7 +370,7 @@ def gen_client_fn(
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         trainloader = trainloaders[int(cid)]
         valloader = valloaders[int(cid)]
-
+        index = index_head + 50 * int(cid)
         return FlowerClient(
             cid=cid,
             model=model,
@@ -383,6 +380,7 @@ def gen_client_fn(
             num_epochs=num_epochs,
             learning_rate=learning_rate,
             straggler_schedule=stragglers_mat[int(cid)],
+            flops=1000,
             ip_address=ip_address,
             index= index
         )

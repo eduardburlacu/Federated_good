@@ -3,7 +3,7 @@ import os
 import sys
 import flwr
 import torch
-
+from grpc._channel import _MultiThreadedRendezvous
 #----Insert main project directory so that we can resolve the src imports----
 src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 sys.path.insert(0, src_path)
@@ -21,7 +21,7 @@ def main()->None:
                         type=str,
                         help="Provide cid of user.")
     parser.add_argument("--sim",
-                        required=True,
+                        required=False,
                         type=str,
                         help="Provide name of expriment to be performed.")
     parser.add_argument("--address",
@@ -53,19 +53,23 @@ def main()->None:
         "cuda:0" if torch.cuda.is_available() and args.use_cuda
         else "cpu"
     )
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    client=None
 
-    #--------------------------Start Client------------------------------
-    flwr.client.start_numpy_client(
-        server_address=server_address(
-            args.address,
-            args.idx
-        ),
-        client=client
-    )
+    #--------------------------Launch Client-----------------------------
+    client =None
 
-
+    try:
+        flwr.client.start_numpy_client(
+            server_address=server_address(
+                args.address,
+                args.idx
+            ),
+            client=client
+        )
+    except Exception as e:
+        if type(e) == _MultiThreadedRendezvous:
+            print("client script terminated with grpc._chanel._MultiThreadedRendezVous")
+        else:
+            raise e
 
 if __name__=='__main__':
     main()

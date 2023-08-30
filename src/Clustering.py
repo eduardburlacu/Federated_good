@@ -1,5 +1,5 @@
 import random
-from typing import List, Tuple, Union, Dict, Set
+from typing import List, Tuple, Dict, Set
 
 class ClusteringModule:
     def __init__(self,
@@ -54,8 +54,8 @@ class ClusteringModule:
 
 class Scheduler:
     def __init__(self,
-                 r_low:float,
-                 r_high:float,
+                 r_low:float= None,
+                 r_high:float = None,
                  schedule:str='round_robin',
                  ):
         self.r_low = r_low
@@ -79,20 +79,6 @@ class Scheduler:
         self.unselected_cids = [cid for cid in unselected_cids if cid not in stragglers]
         self.capacity = capacity
         self.jobs= {}
-
-    def cluster(self, x:List[Union[float,int]]):
-        y=sorted(x)
-        th_high = y[int(self.r_high * len(y))]
-        th_low  = y[int(self.r_low  * len(y))]
-        print(f"th_high:{th_high} and th_low:{th_low}")
-
-        for idx, val in enumerate(x):
-            if val>= th_high:
-                self.tier_high_cid.append((idx,val))
-            elif val >= th_low:
-                self.tier_mid_cid.append((idx,val))
-            else:
-                self.tier_low_cid.append((idx,val))
 
     def get_mappings(self,
                      selected_cids:List[str],

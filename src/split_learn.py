@@ -1,15 +1,6 @@
-'''
-Taken from FedAdapt paper implementation
-'''
 from typing import Tuple
 
-import torch
 import torch.nn as nn
-import torch.nn.init as init
-import torchvision
-import torchvision.transforms as transforms
-from torch.utils.data import DataLoader, Subset
-
 import pickle, struct, socket
 import collections
 import numpy as np
@@ -37,6 +28,7 @@ def recv_msg(sock, expect_msg_type=None):
 
 def split_model(net:nn.Module, n1:int)-> Tuple[nn.Module, nn.Module]:
 	depth = list(net.children())
+	print(len(depth))
 	if n1 > len(depth): raise ValueError("n1 exceeds the total number of depth in the model.")
 	net1 = nn.Sequential(*depth[:n1])
 	net2 = nn.Sequential(*depth[n1:])

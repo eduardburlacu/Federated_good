@@ -29,9 +29,10 @@ def server_address(ip:str,host:int)->str:
 def timeit(func: Callable)-> Callable:
     def wrapper(self, *args, **kwargs):
         start = time.time()
-        func(self, *args, **kwargs)
-        end = time.time()
-        self.time = end - start
+        parameters,size, metrics = func(self, *args, **kwargs)
+        self.time = time.time() - start
+        metrics["time"] = self.time
+        return parameters, size, metrics
 
     return wrapper
 
@@ -144,3 +145,15 @@ def importer(filename:str):
     spec.loader.exec_module(module)
     return module
 
+
+class BasicAgent:
+    def __init__(self, n1: int):
+        '''
+        Simple Agent that, given a state,
+         it chops the network at a fixed point.
+        :param n1:
+        '''
+        self.n1 = n1
+
+    def exploit(self, state=None)->int:
+        return self.n1

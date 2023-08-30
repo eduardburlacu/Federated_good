@@ -1,5 +1,4 @@
 from signal import signal, SIGPIPE, SIG_DFL
-import time
 import pickle
 import struct
 import socket

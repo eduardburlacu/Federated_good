@@ -1,25 +1,26 @@
-"""Runs CNN federated learning for MNIST dataset."""
 import os
 import sys
 import flwr as fl
+
 import hydra
-import torch.utils.data
 from hydra.core.hydra_config import HydraConfig
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
-#----Insert main project directory so that we can resolve the src imports-------
+import torch.utils.data
+
+#-------Insert main project directory so that we can resolve the src imports-------
 src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 sys.path.insert(0, src_path)
 
-from src import PATH_src, GOD_CLIENT_NAME
+from src import PATH_src, GOD_CLIENT_NAME, DEFAULT_SERVER_ADDRESS
 from src import client, server, utils
 from src.Dataset import dataset, federated_dataset
 from src.utils import save_results_as_pickle
 
 @hydra.main(config_path=PATH_src["conf"], config_name="config", version_base=None)
 def main(cfg: DictConfig) -> None:
-    """Main function to run CNN federated learning on MNIST.
+    """Main function to run offloaded federated learning.
 
     Parameters
     ----------
@@ -38,14 +39,14 @@ def main(cfg: DictConfig) -> None:
         # prepare function that will be used to spawn each client
         client_fn = client.gen_client_fn(
             num_clients=cfg.num_clients,
+            num_rounds=cfg.num_rounds,
             num_epochs=cfg.num_epochs,
             trainloaders=trainloaders,
             valloaders=valloaders,
-            datasizes=datasizes,
-            num_rounds=cfg.num_rounds,
             learning_rate=cfg.learning_rate,
             stragglers=cfg.stragglers_fraction,
             model=cfg.model,
+            ip_address=DEFAULT_SERVER_ADDRESS,
         )
 
     elif cfg.dataset in {"sent140","shakespeare","nist","synthetic_0.5_0.5","synthetic_0_0",'synthetic_1_1',"synthetic_iid",}:
