@@ -68,12 +68,17 @@ class FlowerClient(
 
         self.capacity = None
         self.time = 0.
+        try:
+            Communicator.__init__(
+                self,
+                ip_address=ip_address,
+                index=index,
+            )
+            self.connection_failure = False
 
-        Communicator.__init__(
-            self,
-            ip_address=ip_address,
-            index=index,
-        )
+        except:
+            self.connection_failure = True
+            with ConnectionError as e: print(e)
 
     def get_properties(self, config: Dict[str, Scalar]) -> Dict[str, Scalar]:
         #Update capacity
@@ -187,7 +192,7 @@ class FlowerClient(
             return ([*ante_parameters, *self.get_parameters({})],
                     num_examples,
                     { "is_straggler": False,
-                      "split": cid, }
+                      "cid": cid, }
                     )
         else:
             criterion = nn.CrossEntropyLoss()
@@ -232,22 +237,23 @@ class FlowerClient(
             num_epochs = np.random.randint(1, self.num_epochs)
             self.computation_frac = num_epochs / self.num_epochs
 
-            if config["drop_client"]:
-                # return without doing any training.
-                return (
-                    self.get_parameters({}),
-                    len(self.trainloader),
-                    {"is_straggler": True,
-                     "split":None,
-                     "next": self.straggler_schedule[config["curr_round"]]
-                     }
-                )
+            if "drop_client" in config:
+                if config["drop_client"]:
+                    # return without doing any training.
+                    return (
+                        self.get_parameters({}),
+                        len(self.trainloader),
+                        {"is_straggler": True,
+                         "cid":self.cid,
+                         "next": self.straggler_schedule[config["curr_round"]]
+                         }
+                    )
 
         else:
             num_epochs = self.num_epochs
             self.computation_frac = 1.0
 
-        if config["follower"]:
+        if "follower" in config:
 
             if not self.connected:
                 # Wait for connection to straggler(s)
@@ -263,7 +269,8 @@ class FlowerClient(
 
         else:
             # Independent training
-            if config["split_layer"] == len(list(self.net.children())) - 1:  # No offloading training
+            query = self.connection_failure or (config["split_layer"] == len(list(self.net.children())) - 1)
+            if query:  # No offloading training
                 train(
                     self.net,
                     self.trainloader,
@@ -273,10 +280,11 @@ class FlowerClient(
                     proximal_mu=config["proximal_mu"],
                 )
                 return self.get_parameters({}), len(self.trainloader), {"is_straggler": False,
-                                                                        "split": None,}
+                                                                        "cid": self.cid,
+                                                                        "next": self.straggler_schedule[int(config["curr_round"])]
+                                                                        }
+            else:  # Offload a part of the training
 
-            # Offload a part of the training
-            else:
                 # Wait for connection
                 if not self.connected:
                     self.connect(
@@ -292,14 +300,14 @@ class FlowerClient(
                 self.split_train(
                     split_layer=config["split_layer"],
                     num_epochs=num_epochs,
-                    frac = config["frac"],
                 )
 
                 self.disconnect(self.sock)
 
                 return ([], len(self.trainloader), {
-                    "is_straggler": False,
-                    "split":self.cid,
+                    "is_straggler": True,
+                    "cid": self.cid,
+                    "next": bool(self.straggler_schedule[int(config["curr_round"])])
                 })
 
 
@@ -319,7 +327,7 @@ def gen_client_fn(
     trainloaders: List[DataLoader],
     valloaders: List[DataLoader],
     learning_rate: float,
-    stragglers: float,
+    stragglers_frac: float,
     model: DictConfig,
     ip_address:str,
     index_head:int = 50000
@@ -344,7 +352,7 @@ def gen_client_fn(
         belonging to a particular client.
     learning_rate : float
         The learning rate for the SGD  optimizer of clients.
-    stragglers : float
+    stragglers_frac : float
         Proportion of stragglers in the clients, between 0 and 1.
 
     Returns
@@ -359,7 +367,7 @@ def gen_client_fn(
     # clients is respected
     stragglers_mat = np.transpose(
         np.random.choice(
-            [0, 1], size=(num_rounds, num_clients), p=[1 - stragglers, stragglers]
+            [0, 1], size=(num_rounds, num_clients), p=[1 - stragglers_frac, stragglers_frac]
         )
     )
 
@@ -418,6 +426,7 @@ class FedFlowerClient(
         self.trainloader = None
         self.testloader = None
         self.is_embedded = self.dataset_name == "shakespeare"
+
     def fit(
         self, parameters: NDArrays, config: Dict[str, Scalar]
     ) -> Tuple[NDArrays, int, Dict]:

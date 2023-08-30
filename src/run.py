@@ -1,7 +1,6 @@
 import os
 import sys
 import flwr as fl
-from flwr.server.client_manager import SimpleClientManager
 import hydra
 from hydra.core.hydra_config import HydraConfig
 from hydra.utils import instantiate
@@ -15,7 +14,7 @@ from src import PATH_src, DEFAULT_SERVER_ADDRESS
 from src import client, server
 from src.ClientManager import OffloadClientManager
 from src.Dataset import dataset
-from src.utils import save_results_as_pickle,plot_metric_from_history
+from src.utils import save_results_as_pickle,plot_metric_from_history, get_ports
 
 @hydra.main(config_path=PATH_src["conf"], config_name="config_offload", version_base=None)
 def main(cfg: DictConfig) -> None:
@@ -27,6 +26,30 @@ def main(cfg: DictConfig) -> None:
             num_clients=cfg.num_clients,
             batch_size=cfg.batch_size,
         )
+
+        # get function that will be executed by the strategy's evaluate() method
+        # Set server's device
+        device = cfg.server_device
+        evaluate_fn = server.gen_evaluate_fn(testloader, device=device, model=cfg.model)
+
+        #Instantiate strategy requirements according to config
+        ports = get_ports(cfg.num_clients)
+        agent = instantiate(cfg.agent)
+
+        init_stragglers = {str(cid): False for cid in range(cfg.num_clients)}
+        base_capacity = 1 / cfg.num_clients
+        init_capacities = {str(cid): base_capacity for cid in range(cfg.num_clients)}
+        del base_capacity
+
+        strategy = instantiate(
+            cfg.strategy,
+            evaluate_fn=evaluate_fn,
+            agent=agent,
+            init_stragglers=init_stragglers,
+            init_capacities=init_capacities,
+            ports=ports,
+        )
+
         # prepare function that will be used to spawn each client
         client_fn = client.gen_client_fn(
             num_clients=cfg.num_clients,
@@ -35,23 +58,9 @@ def main(cfg: DictConfig) -> None:
             trainloaders=trainloaders,
             valloaders=valloaders,
             learning_rate=cfg.learning_rate,
-            stragglers=cfg.stragglers_fraction,
+            stragglers_frac=cfg.stragglers_fraction,
             model=cfg.model,
             ip_address=DEFAULT_SERVER_ADDRESS,
-        )
-
-        # get function that will be executed by the strategy's evaluate() method
-        # Set server's device
-        device = cfg.server_device
-        evaluate_fn = server.gen_evaluate_fn(testloader, device=device, model=cfg.model)
-
-        #Instantiate agent accoridng to config
-        agent = instantiate(cfg.agent)
-        # instantiate strategy according to config
-        strategy = instantiate(
-            cfg.strategy,
-            evaluate_fn=evaluate_fn,
-            agent=agent
         )
 
         # Start simulation

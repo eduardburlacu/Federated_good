@@ -145,6 +145,10 @@ def importer(filename:str):
     spec.loader.exec_module(module)
     return module
 
+def get_ports(num_clients:int,
+              root:int=50000
+              )->Dict[str,int]:
+    return {str(cid): (root+ 50 * cid) for cid in range(1, num_clients+1)}
 
 class BasicAgent:
     def __init__(self, n1: int):

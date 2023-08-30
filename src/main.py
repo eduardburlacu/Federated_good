@@ -44,7 +44,7 @@ def main(cfg: DictConfig) -> None:
             trainloaders=trainloaders,
             valloaders=valloaders,
             learning_rate=cfg.learning_rate,
-            stragglers=cfg.stragglers_fraction,
+            stragglers_frac=cfg.stragglers_fraction,
             model=cfg.model,
             ip_address=DEFAULT_SERVER_ADDRESS,
         )

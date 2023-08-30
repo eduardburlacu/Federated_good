@@ -103,7 +103,10 @@ class FedProxOffload(FedAvg):
         fit_metrics_aggregation_fn: Optional[MetricsAggregationFn] = None,
         evaluate_metrics_aggregation_fn: Optional[MetricsAggregationFn] = None,
         proximal_mu: float= 0.,
-        agent=None
+        agent=None,
+        init_stragglers: Dict[str,bool]=None,
+        init_capacities: Dict[str,bool]=None,
+        ports: Dict[str, int],
     ) -> None:
         super().__init__()
 
@@ -130,6 +133,9 @@ class FedProxOffload(FedAvg):
         self.model_num_layers = model_num_layers
         self.proximal_mu = proximal_mu
         self.agent = agent
+        self.stragglers = init_stragglers
+        self.capacities = init_capacities
+        self.ports = ports
 
     def __repr__(self) -> str:
         rep = f"FedProx(offload=True, accept_failures={self.accept_failures})"
@@ -144,7 +150,7 @@ class FedProxOffload(FedAvg):
         """Configure the next round of training.
         Sends the proximal factor mu to the clients
         """
-
+        print(f"AVAILABLE FOR TRAINING {client_manager.num_available()}")
         # Sample clients
         sample_size, min_num_clients = self.num_fit_clients(
             client_manager.num_available()
@@ -154,8 +160,11 @@ class FedProxOffload(FedAvg):
             num_clients= sample_size,
             min_num_clients= min_num_clients,
             with_followers= True,
+            stragglers=self.stragglers,
+            capacities=self.capacities,
+            ports = self.ports
         )
-
+        print(f"CLIENTS CONVOCATED ARE: {clients_cid} AND JOBS ARE: {jobs} AND PORTS ARE {ports}")
         result=[]
         for cid, client in zip(clients_cid, clients):
             config = {}
@@ -170,8 +179,8 @@ class FedProxOffload(FedAvg):
             if cid in jobs: #follower configuration
                 config["follower"] = jobs[cid]
                 config["split_layer"] = self.agent.exploit()
-            else: #straggler configuration
-                res:GetPropertiesRes = client.get_properties(GetPropertiesIns({"curr_round":server_round}),timeout=None)
+            elif cid in ports: #straggler configuration
+                res: GetPropertiesRes = client.get_properties(GetPropertiesIns({"curr_round":server_round}),timeout=None)
                 if res.properties["straggler"]==1:
                     config["port"] = ports[cid]
                     config["split_layer"] = self.agent.exploit()
@@ -181,7 +190,7 @@ class FedProxOffload(FedAvg):
                 (client, FitIns(parameters, config))
             )
 
-            return result
+        return result
 
     def aggregate_fit(
         self,
@@ -199,11 +208,14 @@ class FedProxOffload(FedAvg):
 
         # Convert results
         weights_results = []
-
         for client_prox,fit_res in results:
+            print(fit_res.metrics)
+            if "next" in fit_res.metrics:
+                # Update record of stragglers at the moment
+                self.stragglers[fit_res.metrics["cid"]] = fit_res.metrics["next"]
 
             weight = parameters_to_ndarrays(fit_res.parameters)
-            if len(weight)>0:
+            if len(weight)>0: #Filter stragglers aided by followers
                 weights_results.append((weight, fit_res.num_examples))
 
         parameters_aggregated = ndarrays_to_parameters(aggregate(weights_results))

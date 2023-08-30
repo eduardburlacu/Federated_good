@@ -118,27 +118,26 @@ class Scheduler:
             capacity=capacity,
             stragglers=stragglers,
         )
-
+        print(f'SELECTED CIDS {self.selected_cids}',f'UNSELECTED CIDS {self.unselected_cids}',)
         if priority_sort:
             self.selected_cids.sort(key= lambda x: capacity[x], reverse = False)
             self.unselected_cids.sort(key= lambda x: capacity[x], reverse = True)
-
+        print(f'SELECTED CIDS {self.selected_cids}', f'UNSELECTED CIDS {self.unselected_cids}', )
         jobs={}
         mappings={}
-        clients=[]
+        clients= self.selected_cids
         if self.schedule == "round_robin":
-
             lim = len(self.unselected_cids)
+            if lim > 0:
+                for idx, cid in enumerate(self.selected_cids):
+                    if cid in stragglers:
+                        mappings[cid] = self.unselected_cids[ idx%lim ]
+                        if self.unselected_cids[idx%lim] not in jobs:
+                            jobs[self.unselected_cids[idx % lim]] = 1
+                        else:
+                            jobs[self.unselected_cids[idx % lim]]+=1
 
-            for idx, cid in enumerate(self.selected_cids):
-                if cid in stragglers:
-                    mappings[cid] = self.unselected_cids[ idx%lim ]
-                    if self.unselected_cids[idx%lim] not in jobs:
-                        jobs[self.unselected_cids[idx % lim]] = 1
-                    else:
-                        jobs[self.unselected_cids[idx % lim]]+=1
-
-            clients=[*self.selected_cids, *jobs.keys()]
+                clients=[*self.selected_cids, *jobs.keys()]
 
         return jobs, mappings, clients
 
