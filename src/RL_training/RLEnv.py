@@ -14,7 +14,7 @@ import json
 import operator
 
 import sys
-sys.path.append('../')
+sys.path.append('../Delegated/')
 import config
 import src.Delegated.utils as utils
 from src.Delegated.Communication import *

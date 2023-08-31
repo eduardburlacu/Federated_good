@@ -8,8 +8,8 @@ logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(le
 logger = logging.getLogger(__name__)
 
 import sys
-sys.path.append('../')
-from src.Delegated.RL_training.RLEnv import RL_Client
+sys.path.append('../Delegated/')
+from src.RL_training.RLEnv import RL_Client
 import config
 from src.Delegated import utils
 

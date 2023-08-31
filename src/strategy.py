@@ -104,7 +104,7 @@ class FedProxOffload(FedAvg):
         evaluate_metrics_aggregation_fn: Optional[MetricsAggregationFn] = None,
         proximal_mu: float= 0.,
         agent=None,
-        init_stragglers: Dict[str,bool]=None,
+        init_stragglers: Dict[str, int]=None,
         init_capacities: Dict[str,bool]=None,
         ports: Dict[str, int],
     ) -> None:
@@ -212,7 +212,7 @@ class FedProxOffload(FedAvg):
             print(fit_res.metrics)
             if "next" in fit_res.metrics:
                 # Update record of stragglers at the moment
-                self.stragglers[fit_res.metrics["cid"]] = fit_res.metrics["next"]
+                self.stragglers[fit_res.metrics["cid"]] = bool(fit_res.metrics["next"])
 
             weight = parameters_to_ndarrays(fit_res.parameters)
             if len(weight)>0: #Filter stragglers aided by followers
@@ -228,4 +228,5 @@ class FedProxOffload(FedAvg):
         elif server_round == 1:  # Only log this warning once
             log(WARNING, "No fit_metrics_aggregation_fn provided")
 
+        print(self.stragglers)
         return parameters_aggregated, metrics_aggregated

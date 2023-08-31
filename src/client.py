@@ -150,7 +150,7 @@ class FlowerClient(
 
         for e in range(num_epochs):
             for batch_idx, (features, targets) in enumerate(self.trainloader):
-                if batch_idx<= int(frac* len(self.trainloader)):
+                if batch_idx<= int(frac * len(self.trainloader)):
                     features, targets = features.to(self.device), targets.to(self.device)
                     optimizer.zero_grad()
                     proximal_term = 0.0
@@ -245,7 +245,7 @@ class FlowerClient(
                         len(self.trainloader),
                         {"is_straggler": True,
                          "cid":self.cid,
-                         "next": self.straggler_schedule[config["curr_round"]]
+                         "next": self.straggler_schedule[min(config["curr_round"], len(self.straggler_schedule)-1)]
                          }
                     )
 
@@ -279,10 +279,15 @@ class FlowerClient(
                     learning_rate=self.learning_rate,
                     proximal_mu=config["proximal_mu"],
                 )
-                return self.get_parameters({}), len(self.trainloader), {"is_straggler": False,
-                                                                        "cid": self.cid,
-                                                                        "next": self.straggler_schedule[int(config["curr_round"])]
-                                                                        }
+                return self.get_parameters({}), len(self.trainloader), {
+                    "is_straggler": num_epochs==self.num_epochs,
+                    "cid": self.cid,
+                    "next": self.straggler_schedule[min(
+                        config["curr_round"],
+                        len(self.straggler_schedule)-1
+                    )]
+                }
+
             else:  # Offload a part of the training
 
                 # Wait for connection
@@ -307,7 +312,7 @@ class FlowerClient(
                 return ([], len(self.trainloader), {
                     "is_straggler": True,
                     "cid": self.cid,
-                    "next": bool(self.straggler_schedule[int(config["curr_round"])])
+                    "next": self.straggler_schedule[min(config["curr_round"], len(self.straggler_schedule)-1)]
                 })
 
 

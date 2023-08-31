@@ -16,7 +16,7 @@ sys.path.insert(0, src_path)
 from src import DEFAULT_SERVER_ADDRESS
 from src.strategy import FedProxOffload
 from src.ClientManager import OffloadClientManager
-from src.Delegated import PPO
+from src.RL_training import PPO
 from src.utils import set_random_seed, BasicAgent
 
 NUM_LAYERS_MODEL= 10

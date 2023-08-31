@@ -1,6 +1,7 @@
 import os
 
 DEFAULT_SERVER_ADDRESS = '127.0.0.1'
+PORT_ROOT = 50000
 PROJECT_PATH = os.path.dirname(os.path.dirname(__file__))
 os.chdir(PROJECT_PATH)
 

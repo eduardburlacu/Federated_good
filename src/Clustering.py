@@ -70,7 +70,7 @@ class Scheduler:
                 ):
 
         self.selected_cids = selected_cids.copy()
-        self.unselected_cids = [cid for cid in unselected_cids if cid not in stragglers]
+        self.unselected_cids = [cid for cid in unselected_cids if stragglers[cid]==0]
         self.capacity = capacity
         self.jobs= {}
 
@@ -112,11 +112,9 @@ class Scheduler:
             capacity=capacity,
             stragglers=stragglers,
         )
-        print(f'SELECTED CIDS {self.selected_cids}',f'UNSELECTED CIDS {self.unselected_cids}',)
         if priority_sort:
             self.selected_cids.sort(key= lambda x: capacity[x], reverse = False)
             self.unselected_cids.sort(key= lambda x: capacity[x], reverse = True)
-        print(f'SELECTED CIDS {self.selected_cids}', f'UNSELECTED CIDS {self.unselected_cids}', )
         jobs={}
         mappings={}
         clients= self.selected_cids

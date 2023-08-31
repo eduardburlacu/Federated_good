@@ -49,3 +49,7 @@ def gen_evaluate_fn(
         return loss, {"accuracy": accuracy}
 
     return evaluate
+
+
+def fit_metrics_aggregation_fn():
+    pass
