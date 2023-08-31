@@ -14,7 +14,7 @@ import torch
 import matplotlib.pyplot as plt
 import numpy as np
 from flwr.server.history import History
-from src import PATH_src
+from src import PATH_src, PORT_ROOT
 
 def set_random_seed(seed: int):
     random.seed(1+seed)
@@ -146,9 +146,8 @@ def importer(filename:str):
     return module
 
 def get_ports(num_clients:int,
-              root:int=50000
               )->Dict[str,int]:
-    return {str(cid): (root+ 50 * cid) for cid in range(1, num_clients+1)}
+    return {str(cid): ( PORT_ROOT + 50 * cid) for cid in range(1, num_clients+1)}
 
 class BasicAgent:
     def __init__(self, n1: int):

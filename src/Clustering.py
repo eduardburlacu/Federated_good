@@ -53,13 +53,7 @@ class ClusteringModule:
 
 
 class Scheduler:
-    def __init__(self,
-                 r_low:float= None,
-                 r_high:float = None,
-                 schedule:str='round_robin',
-                 ):
-        self.r_low = r_low
-        self.r_high = r_high
+    def __init__(self, schedule:str='round_robin',):
 
         self.schedule = schedule
         self.selected_cids = []
@@ -148,6 +142,7 @@ if __name__=='__main__':
     c = ClusteringModule(flops, 0.25, 0.75)
     c.get_tiers()
     c.print()
+    
     '''
     scheduler = Scheduler(
         r_low=0.1,
