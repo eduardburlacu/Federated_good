@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from flwr.server.history import History
 from src import PATH_src, PORT_ROOT
+from src.Communication import Communicator
 
 def set_random_seed(seed: int):
     random.seed(1+seed)
@@ -148,6 +149,19 @@ def importer(filename:str):
 def get_ports(num_clients:int,
               )->Dict[str,int]:
     return {str(cid): ( PORT_ROOT + 5 * cid) for cid in range(1, num_clients+1)}
+
+def get_communicators(num_clients:int,
+                      ip_address:str,
+                      ports:Dict[str, int],
+                      )->Dict[str,Communicator]:
+    #instantiate communicators
+    communicators={}
+    for cid, port in ports.items():
+        communicators[cid] = Communicator(
+            ip_address=ip_address,
+            index=ports[cid]
+        )
+    return communicators
 
 class BasicAgent:
     def __init__(self, n1: int):

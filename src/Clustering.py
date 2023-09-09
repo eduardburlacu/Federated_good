@@ -129,7 +129,10 @@ class Scheduler:
                         else:
                             jobs[self.unselected_cids[idx % lim]]+=1
 
-                clients=[*self.selected_cids, *jobs.keys()]
+                #for follower, straggler in zip(jobs.keys(), self.selected_cids):
+                #    clients.append(follower)
+                #    clients.append(straggler)
+                clients=[ *jobs.keys(), *self.selected_cids,]
 
         return jobs, mappings, clients
 

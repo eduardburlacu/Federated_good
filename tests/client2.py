@@ -1,3 +1,10 @@
+import sys
+import os
+#-------Insert main project directory so that we can resolve the src imports-------
+src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
+sys.path.insert(0, src_path)
+
+
 from signal import signal, SIGPIPE, SIG_DFL
 signal(SIGPIPE,SIG_DFL)
 

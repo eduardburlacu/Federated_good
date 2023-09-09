@@ -33,9 +33,10 @@ class FlowerClient(
         num_epochs: int,
         learning_rate: float,
         straggler_schedule: np.ndarray,
-        flops:int,
+        init_capacity:float,
         ip_address:str,
         index:int,
+        flops:int=50,
     ):  # pylint: disable=too-many-arguments
         '''
         Implements a unique FL participant.
@@ -66,8 +67,8 @@ class FlowerClient(
         self.flops = flops
         self.mbps = -1.
 
-        self.capacity = None
-        self.time = 0.
+        self.capacity = init_capacity
+        self.time: float = 0.
         try:
             Communicator.__init__(
                 self,
@@ -157,6 +158,7 @@ class FlowerClient(
                     for local_weights, global_weights in zip(self.net.parameters(), global_parms):
                         proximal_term += (local_weights - global_weights).norm(2)
                     smashed_activations = self.net(features)
+                    print(f"I am in straggler, prox term is{proximal_term,type(proximal_term)}")
                     # Transfer data to other device
                     msg = ["MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER",
                            split_layer,
@@ -332,9 +334,10 @@ def gen_client_fn(
     valloaders: List[DataLoader],
     learning_rate: float,
     stragglers_frac: float,
+    capacities:Dict[str,float],
     model: DictConfig,
     ip_address:str,
-    index_head:int = 50000
+    ports:Dict[str,int],
 ) -> Callable[[str], FlowerClient]:  # pylint: disable=too-many-arguments
     """Generates the client function that creates the Flower Clients.
 
@@ -382,7 +385,7 @@ def gen_client_fn(
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         trainloader = trainloaders[int(cid)]
         valloader = valloaders[int(cid)]
-        index = index_head + 50 * int(cid)
+        index = ports[cid]
         return FlowerClient(
             cid=cid,
             model=model,
@@ -392,7 +395,7 @@ def gen_client_fn(
             num_epochs=num_epochs,
             learning_rate=learning_rate,
             straggler_schedule=stragglers_mat[int(cid)],
-            flops=1000,
+            init_capacity=capacities[cid],
             ip_address=ip_address,
             index= index
         )

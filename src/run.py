@@ -59,8 +59,10 @@ def main(cfg: DictConfig) -> None:
             valloaders=valloaders,
             learning_rate=cfg.learning_rate,
             stragglers_frac=cfg.stragglers_fraction,
+            capacities=init_capacities,
             model=cfg.model,
             ip_address=DEFAULT_SERVER_ADDRESS,
+            ports=ports,
         )
 
         # Start simulation

@@ -6,6 +6,7 @@ import torch
 import flwr
 from flwr.server import ServerConfig
 import hydra
+from hydra.core.hydra_config import HydraConfig
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 import logging
@@ -21,7 +22,7 @@ from src import DEFAULT_GRPC_ADDRESS, PATH_src
 from src.server import gen_evaluate_fn
 from src.ClientManager import OffloadClientManager
 from src.Dataset.dataset import load_datasets
-from src.utils import set_random_seed, get_ports
+from src.utils import set_random_seed, get_ports, save_results_as_pickle, plot_metric_from_history
 
 @hydra.main(config_path=PATH_src["conf"], config_name="config_offload", version_base=None)
 def main(cfg: DictConfig)->None:
@@ -96,6 +97,40 @@ def main(cfg: DictConfig)->None:
         server_address=args.server_address,
         server=server,
         config=ServerConfig(cfg.num_rounds),
+    )
+
+    # Experiment completed. Now we save the results and
+    # generate plots using the `history`
+    print("................")
+    print(history)
+
+    # Hydra automatically creates an output directory
+    # Let's retrieve it and save some results there
+    save_path = HydraConfig.get().runtime.output_dir
+
+    # save results as a Python pickle using a file_path
+    # the directory created by Hydra for each run
+    save_results_as_pickle(history, file_path=save_path, extra_results={})
+
+    # plot results and include them in the readme
+    strategy_name = strategy.__class__.__name__
+    file_suffix: str = (
+        f"_{strategy_name}"
+        f"{'_iid' if cfg.dataset_config.iid else ''}"
+        f"{'_balanced' if cfg.dataset_config.balance else ''}"
+        f"{'_powerlaw' if cfg.dataset_config.power_law else ''}"
+        f"_C={cfg.num_clients}"
+        f"_B={cfg.batch_size}"
+        f"_E={cfg.num_epochs}"
+        f"_R={cfg.num_rounds}"
+        f"_mu={cfg.mu}"
+        f"_strag={cfg.stragglers_fraction}"
+    )
+
+    plot_metric_from_history(
+        history,
+        save_path,
+        (file_suffix),
     )
     os.kill(os.getppid(), SIGUSR1)
 
