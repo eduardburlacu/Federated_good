@@ -147,7 +147,7 @@ def importer(filename:str):
 
 def get_ports(num_clients:int,
               )->Dict[str,int]:
-    return {str(cid): ( PORT_ROOT + 50 * cid) for cid in range(1, num_clients+1)}
+    return {str(cid): ( PORT_ROOT + 5 * cid) for cid in range(1, num_clients+1)}
 
 class BasicAgent:
     def __init__(self, n1: int):
@@ -157,6 +157,9 @@ class BasicAgent:
         :param n1:
         '''
         self.n1 = n1
+
+    def __repr__(self):
+        return "BasicAgent"
 
     def exploit(self, state=None)->int:
         return self.n1

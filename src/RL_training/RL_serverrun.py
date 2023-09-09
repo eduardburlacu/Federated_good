@@ -8,11 +8,9 @@ logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(le
 logger = logging.getLogger(__name__)
 
 import sys
-sys.path.append('../')
+sys.path.append('../Delegated/')
 from RLEnv import Env
 import config
-import utils
-import RLEnv
 import PPO
 
 if config.random:

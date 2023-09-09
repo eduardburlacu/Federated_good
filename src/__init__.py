@@ -1,7 +1,8 @@
 import os
 
-DEFAULT_SERVER_ADDRESS = '127.0.0.1'
-PORT_ROOT = 50000
+DEFAULT_SERVER_ADDRESS = '127.0.0.1' #For socket bind
+DEFAULT_GRPC_ADDRESS = "[::]:8080"
+PORT_ROOT = 20000
 PROJECT_PATH = os.path.dirname(os.path.dirname(__file__))
 os.chdir(PROJECT_PATH)
 

@@ -28,15 +28,17 @@ class Communicator(object):
 			logger.error(e)
 
 	def listen(self, n:int=1):
-		self.sock.bind((self.ip, self.index))
-		self.sock.listen(n)
-		print(f"Listening for connections on {self.ip}:{self.index}")
+		try:
+			self.sock.bind((self.ip, self.index))
+			self.sock.listen(n)
+			print(f"Listening for connections on {self.ip}:{self.index}")
 
-		while not self.connected:
-			self.connection, address = self.sock.accept()
-			print(f"Accepted connection from {address}")
-			self.connected =True
-
+			while not self.connected:
+				self.connection, address = self.sock.accept()
+				print(f"Accepted connection from {address}")
+				self.connected =True
+		except:
+			raise RuntimeError(f'Failed server setup with host number{self.ip}:{self.index}')
 	def disconnect(self, other_sock:socket.SocketType, init=False):
 		if self.connected and init:
 			if init:

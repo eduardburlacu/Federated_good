@@ -268,9 +268,8 @@ class FlowerClient(
             return result
 
         else:
-            # Independent training
             query = self.connection_failure or (config["split_layer"] == len(list(self.net.children())) - 1)
-            if query:  # No offloading training
+            if query:  # Independent training
                 train(
                     self.net,
                     self.trainloader,

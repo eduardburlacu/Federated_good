@@ -51,12 +51,12 @@ fit_config:
 strategy:
   _target_: src.strategy.FedProxOffload
   model_num_layers: 5
-  fraction_fit: 0.00001 # because we want the number of clients to sample on each roudn to be solely defined by min_fit_clients
+  fraction_fit: 0.00001 # because we want the number of clients to sample on each round to be solely defined by min_fit_clients
   fraction_evaluate: 0.0
   min_fit_clients: 10
   min_evaluate_clients: 0
   min_available_clients: 20
   evaluate_metrics_aggregation_fn:
     _target_: src.strategy.weighted_average
-    _partial_: true # we dont' want this function to be evaluated when instantiating the strategy, we treat it as a partial and evaluate it when the strategy actuallly calls the function (in aggregate_evaluate())
+    _partial_: true # we don't want this function to be evaluated when instantiating the strategy, we treat it as a partial and evaluate it when the strategy actuallly calls the function (in aggregate_evaluate())
   proximal_mu: 2.0
