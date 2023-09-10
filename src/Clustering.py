@@ -58,27 +58,24 @@ class Scheduler:
         self.schedule = schedule
         self.selected_cids = []
         self.unselected_cids = []
-
         self.capacity = []
-        self.jobs = {}
 
     def _update(self,
                 selected_cids:List[str],
                 unselected_cids:List[str],
                 capacity:Dict[str, float],
-                stragglers:Set
+                stragglers:Dict[str, int],
                 ):
 
         self.selected_cids = selected_cids.copy()
         self.unselected_cids = [cid for cid in unselected_cids if stragglers[cid]==0]
         self.capacity = capacity
-        self.jobs= {}
 
     def get_mappings(self,
                      selected_cids:List[str],
                      unselected_cids:List[str],
                      capacity:Dict[str, float],
-                     stragglers:Set[str],
+                     stragglers:Dict[str, int],
                      priority_sort=True
                      ) -> Tuple[
         Dict[str, int],
@@ -122,16 +119,13 @@ class Scheduler:
             lim = len(self.unselected_cids)
             if lim > 0:
                 for idx, cid in enumerate(self.selected_cids):
-                    if cid in stragglers:
+                    if stragglers[cid]==1:
                         mappings[cid] = self.unselected_cids[ idx%lim ]
                         if self.unselected_cids[idx%lim] not in jobs:
                             jobs[self.unselected_cids[idx % lim]] = 1
                         else:
                             jobs[self.unselected_cids[idx % lim]]+=1
 
-                #for follower, straggler in zip(jobs.keys(), self.selected_cids):
-                #    clients.append(follower)
-                #    clients.append(straggler)
                 clients=[ *jobs.keys(), *self.selected_cids]
 
         return jobs, mappings, clients
@@ -145,10 +139,7 @@ if __name__=='__main__':
     c.print()
     
     '''
-    scheduler = Scheduler(
-        r_low=0.1,
-        r_high=0.2
-    )
+    scheduler = Scheduler()
     selected = '12 3 4 2 1 6 7 9'.split(sep=' ')
     unselected = '13 14 19 20'.split(sep=' ')
     capacity={ x: random.random() for x in [*selected, *unselected]}

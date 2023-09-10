@@ -48,7 +48,6 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
     examples = [num_examples for num_examples, _ in metrics]
 
     # Aggregate and return custom metric (weighted average)
-    print("here and nothing is breaking!!!")
     return {"accuracy": int(sum(accuracies)) / int(sum(examples))}
 
 
@@ -180,11 +179,11 @@ class FedProxOffload(FedAvg):
                 config["follower"] = jobs[cid]
                 config["split_layer"] = self.agent.exploit()
             elif cid in ports: #straggler configuration
-                res: GetPropertiesRes = client.get_properties(GetPropertiesIns({"curr_round":server_round}),timeout=None)
-                if res.properties["straggler"]==1:
-                    config["port"] = ports[cid]
-                    config["split_layer"] = self.agent.exploit()
-                del res
+                #res: GetPropertiesRes = client.get_properties(GetPropertiesIns({"curr_round":server_round}),timeout=None)
+                #if res.properties["straggler"]==1:
+                config["port"] = ports[cid]
+                config["split_layer"] = self.agent.exploit()
+                #del res
 
             result.append(
                 (client, FitIns(parameters, config))
@@ -228,5 +227,4 @@ class FedProxOffload(FedAvg):
         elif server_round == 1:  # Only log this warning once
             log(WARNING, "No fit_metrics_aggregation_fn provided")
 
-        print(self.stragglers)
         return parameters_aggregated, metrics_aggregated

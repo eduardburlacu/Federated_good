@@ -36,7 +36,7 @@ def main(cfg: DictConfig) -> None:
         ports = get_ports(cfg.num_clients)
         agent = instantiate(cfg.agent)
 
-        init_stragglers = {str(cid): 0 for cid in range(cfg.num_clients)}
+        init_stragglers = {str(cid): round(cid/cfg.num_clients) for cid in range(cfg.num_clients)}
         base_capacity = 1 / cfg.num_clients
         init_capacities = {str(cid): base_capacity for cid in range(cfg.num_clients)}
         del base_capacity

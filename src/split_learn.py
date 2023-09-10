@@ -28,10 +28,15 @@ def recv_msg(sock, expect_msg_type=None):
 
 def split_model(net:nn.Module, n1:int)-> Tuple[nn.Module, nn.Module]:
 	depth = list(net.children())
-	print(len(depth))
-	if n1 > len(depth): raise ValueError("n1 exceeds the total number of depth in the model.")
-	net1 = nn.Sequential(*depth[:n1])
-	net2 = nn.Sequential(*depth[n1:])
+	if n1==0:
+		net1 = nn.Identity()
+		net2 = net
+	elif n1 == len(depth):
+		net1 = net
+		net2 = nn.Identity()
+	else:
+		net1 = nn.Sequential(*depth[:n1])
+		net2 = nn.Sequential(*depth[n1:])
 
 	return net1, net2
 

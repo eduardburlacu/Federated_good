@@ -143,22 +143,25 @@ class FlowerClient(
         global_parms = [val.detach().clone() for val in self.net.parameters()]
         self.net.train()
 
-        optimizer = torch.optim.SGD(
-            self.net.parameters(),
-            lr=self.learning_rate,
-            momentum=momentum,
-        )
+        if split_layer > 0:
+            optimizer = torch.optim.SGD(
+                self.net.parameters(),
+                lr=self.learning_rate,
+                momentum=momentum,
+            )
+        else: optimizer = None
 
         for e in range(num_epochs):
+
             for batch_idx, (features, targets) in enumerate(self.trainloader):
                 if batch_idx<= int(frac * len(self.trainloader)):
                     features, targets = features.to(self.device), targets.to(self.device)
-                    optimizer.zero_grad()
+                    if split_layer>0:
+                        optimizer.zero_grad()
                     proximal_term = 0.0
                     for local_weights, global_weights in zip(self.net.parameters(), global_parms):
                         proximal_term += (local_weights - global_weights).norm(2)
                     smashed_activations = self.net(features)
-                    print(f"I am in straggler, prox term is{proximal_term,type(proximal_term)}")
                     # Transfer data to other device
                     msg = ["MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER",
                            split_layer,
@@ -169,10 +172,12 @@ class FlowerClient(
                     self.send_msg(
                         sock=self.to_socket(),
                         msg=msg,
-                    )
-                    # Wait for backpropagation
-                    gradients = self.recv_msg(self.to_socket())[1].to(self.device)
-                    smashed_activations.backward(gradients)
+                    )   
+                    # Wait for backpropagation if split learning
+                    gradients = self.recv_msg(self.to_socket())[1]
+                    if split_layer > 0:
+                        gradients = gradients.to(self.device)
+                        smashed_activations.backward(gradients)
 
         msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER',
                self.cid,
@@ -198,7 +203,13 @@ class FlowerClient(
                     )
         else:
             criterion = nn.CrossEntropyLoss()
-            split_layer, proximal_term, smashed_activations, targets = msg[1:]
+            split_layer, proximal_term_straggler, smashed_activations, targets = msg[1:]
+            # Split training
+            if self.net:
+                self.net = split_model(net=self.net, n1=split_layer)[1]
+
+            else: raise RuntimeError('Model missing in split train.')
+
             self.net.train()
             global_params = [val.detach().clone() for val in self.net.parameters()]
 
@@ -209,9 +220,11 @@ class FlowerClient(
             )
             smashed_activations, targets = smashed_activations.to(self.device), targets.to(self.device)
             optimizer.zero_grad()
+            proximal_term_follower = 0.0
             for local_weights, global_weights in zip(self.net.parameters(), global_params):
-                proximal_term += (local_weights - global_weights).norm(2)
+                proximal_term_follower += (local_weights - global_weights).norm(2)
             output = self.net(smashed_activations)
+            proximal_term = proximal_term_straggler + proximal_term_follower
             loss = criterion(output, targets) + proximal_mu * proximal_term /2
             loss.backward()
             optimizer.step()
@@ -231,7 +244,6 @@ class FlowerClient(
         """Implements distributed fit function for a given client."""
 
         self.set_parameters(parameters)
-        print(f'Client {self.cid} fitting...')
         if (
             self.straggler_schedule[int(config["curr_round"]) - 1]
             and self.num_epochs > 1
@@ -255,17 +267,21 @@ class FlowerClient(
             num_epochs = self.num_epochs
             self.computation_frac = 1.0
 
-        if "follower" in config:
+        #self.disconnect(self.sock)
 
+        if "follower" in config:
+            # Wait for connection to straggler(s)
             if not self.connected:
-                # Wait for connection to straggler(s)
                 self.listen(config["follower"])
+            #Update network from server
+            if len(list(self.net.children())) != len(parameters):
+                self.net = instantiate(self.model).to(self.device)
+            self.set_parameters(parameters)
 
             result = None
             while result is None:
                 result = self.split_follower(proximal_mu=config["proximal_mu"])
-
-            self.disconnect(self.sock)
+            print(f'Offloader {self.cid} has finished training round')
 
             return result
 
@@ -280,6 +296,7 @@ class FlowerClient(
                     learning_rate=self.learning_rate,
                     proximal_mu=config["proximal_mu"],
                 )
+                print(f'Regular client {self.cid} has finished training')
                 return self.get_parameters({}), len(self.trainloader), {
                     "is_straggler": num_epochs==self.num_epochs,
                     "cid": self.cid,
@@ -290,7 +307,6 @@ class FlowerClient(
                 }
 
             else:  # Offload a part of the training
-                print(self.connected, 'Getting into connect loop if false...')
                 # Wait for connection
                 if not self.connected:
                     self.connect(
@@ -308,8 +324,7 @@ class FlowerClient(
                     num_epochs=num_epochs,
                 )
 
-                self.disconnect(self.sock)
-
+                print(f'Straggler {self.cid} has finished training round')
                 return ([], len(self.trainloader), {
                     "is_straggler": True,
                     "cid": self.cid,

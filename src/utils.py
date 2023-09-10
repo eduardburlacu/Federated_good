@@ -148,7 +148,7 @@ def importer(filename:str):
 
 def get_ports(num_clients:int,
               )->Dict[str,int]:
-    return {str(cid): ( PORT_ROOT + 5 * cid) for cid in range(1, num_clients+1)}
+    return {str(cid): ( PORT_ROOT + 5 * cid) for cid in range(num_clients)}
 
 def get_communicators(num_clients:int,
                       ip_address:str,

@@ -24,7 +24,7 @@ class OffloadClientManager(SimpleClientManager):
         criterion: Optional[Criterion] = None,
 
         with_followers:Optional[bool] = False,
-        stragglers:Optional[Dict[str,bool]]=None,
+        stragglers:Optional[Dict[str,int]]=None,
         capacities:Optional[Dict[str,bool]]=None,
         ports:Optional[Dict[str,int]]=None,
     ) -> Union[
@@ -64,9 +64,8 @@ class OffloadClientManager(SimpleClientManager):
         sampled_cids = available_cids[:num_clients]
         unsampled_cids = available_cids[num_clients:]
 
-        if with_followers:      #Include followers
+        if with_followers:  #Include followers
             query = (stragglers is None) or (capacities is None) or (ports is None)
-            print(f'QUERY IS : {query}')
             if query:
                 # Fully observable MDP
                 # otherwise POMDP -> exploit based on previous readings

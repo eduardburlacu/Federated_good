@@ -61,9 +61,13 @@ class Communicator(object):
 			self.connected =True
 
 	def disconnect(self, other_sock:socket.SocketType, init=True):
-		if self.connected and init:
+		if self.connected:
 			if init:
-				self.send_msg(other_sock, f'Finished the transfer {str(other_sock.getpeername()[0])}:{str(other_sock.getpeername()[1])} \n Closing the connection...')
+				#Initiate closure
+				self.send_msg(other_sock, f'Finished the transfer {str(other_sock.getpeername()[0])}:{str(other_sock.getpeername()[1])} \n Closing the socket...')
+			else:
+				#Wait for closure
+				self.recv_msg(self.sock)
 			self.sock.close()
 			self.connected = False
 
@@ -100,4 +104,5 @@ if __name__=='__main__':
 	client1.send_msg(client1.connection, msg)
 	print(client1.recv_msg(client1.connection))
 	client1.disconnect(client1.sock, init=False)
+	print(client1.sock)
 

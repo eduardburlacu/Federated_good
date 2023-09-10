@@ -40,7 +40,7 @@ class Communicator(object):
 		except:
 			raise RuntimeError(f'Failed server setup with host number{self.ip}:{self.index}')
 	def disconnect(self, other_sock:socket.SocketType, init=False):
-		if self.connected and init:
+		if self.connected:
 			if init:
 				self.send_msg(other_sock, f'Finished the transfer {str(other_sock.getpeername()[0])}:{str(other_sock.getpeername()[1])} \n Closing the connection...')
 			self.sock.close()
