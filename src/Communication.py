@@ -19,13 +19,14 @@ class Communicator(object):
 
 
 	def connect(self,other_addr,other_port):
-		try:
-			#logger.info(f'Connecting to {other_addr}:{other_port}.')
-			self.sock.connect((other_addr, other_port))
-			self.connected = True
-			print(f"Connected to {other_addr}:{other_port}")
-		except socket.error as e:
-			logger.error(e)
+		while not self.connected:
+			try:
+				#logger.info(f'Connecting to {other_addr}:{other_port}.')
+				self.sock.connect((other_addr, other_port))
+				self.connected = True
+				print(f"Connected to {other_addr}:{other_port}")
+			except:
+				continue
 
 	def listen(self, n:int=1):
 		try:
