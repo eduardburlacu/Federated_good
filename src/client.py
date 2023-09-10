@@ -79,7 +79,7 @@ class FlowerClient(
 
         except:
             self.connection_failure = True
-            with ConnectionError as e: print(e)
+            raise ConnectionError()
 
     def get_properties(self, config: Dict[str, Scalar]) -> Dict[str, Scalar]:
         #Update capacity
@@ -231,7 +231,7 @@ class FlowerClient(
         """Implements distributed fit function for a given client."""
 
         self.set_parameters(parameters)
-
+        print(f'Client {self.cid} fitting...')
         if (
             self.straggler_schedule[int(config["curr_round"]) - 1]
             and self.num_epochs > 1
@@ -290,7 +290,7 @@ class FlowerClient(
                 }
 
             else:  # Offload a part of the training
-
+                print(self.connected, 'Getting into connect loop if false...')
                 # Wait for connection
                 if not self.connected:
                     self.connect(

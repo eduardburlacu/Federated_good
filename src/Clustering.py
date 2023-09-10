@@ -132,7 +132,7 @@ class Scheduler:
                 #for follower, straggler in zip(jobs.keys(), self.selected_cids):
                 #    clients.append(follower)
                 #    clients.append(straggler)
-                clients=[ *jobs.keys(), *self.selected_cids,]
+                clients=[ *jobs.keys(), *self.selected_cids]
 
         return jobs, mappings, clients
 
