@@ -15,7 +15,7 @@ logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(le
 logger = logging.getLogger(__name__)
 
 #----Insert main project directory so that we can resolve the src imports-------
-src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
+src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 sys.path.insert(0, src_path)
 
 from src import DEFAULT_GRPC_ADDRESS, PATH_src

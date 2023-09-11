@@ -16,12 +16,6 @@ PATH_src = {
     directory: os.path.join(PATH['src'], directory) for directory in src_directories
 }
 
-path_sims = os.path.join(PATH_src['conf'],'simulations')
-sims  = os.listdir(path_sims)
-PATH_sim = {
-    os.path.splitext(f)[0]: os.path.join(path_sims, f) for f in sims
-}
-
 path_data =os.path.join(PATH_src['Dataset'],'data')
 data_directories = os.listdir(path_data)
 

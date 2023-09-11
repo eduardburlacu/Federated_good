@@ -8,7 +8,7 @@ import hydra
 from omegaconf import DictConfig
 
 #----Insert main project directory so that we can resolve the src imports----
-src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
+src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 sys.path.insert(0, src_path)
 
 from src import DEFAULT_GRPC_ADDRESS, DEFAULT_SERVER_ADDRESS, PATH_src

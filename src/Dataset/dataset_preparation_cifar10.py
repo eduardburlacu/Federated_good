@@ -8,7 +8,8 @@ import shutil
 from PIL import Image
 from torchvision.datasets import VisionDataset
 from typing import Callable, Optional, Tuple, Any
-from src.common import create_lda_partitions
+from src import PATH_data
+from src.Dataset.lda_partition import create_lda_partitions
 
 def get_dataset(path_to_data: Path, cid: str, partition: str):
     # generate path to cid's data
@@ -17,7 +18,7 @@ def get_dataset(path_to_data: Path, cid: str, partition: str):
     return TorchVision_FL(path_to_data, transform=cifar10Transformation())
 
 def get_dataloader(
-    path_to_data: str, cid: str, is_train: bool, batch_size: int, workers: int
+    path_to_data: str, cid: str, is_train: bool, batch_size: int
 ):
     """Generates trainset/valset object and returns appropiate dataloader."""
 
@@ -25,7 +26,7 @@ def get_dataloader(
     dataset = get_dataset(Path(path_to_data), cid, partition)
 
     # we use as number of workers all the cpu cores assigned to this actor
-    kwargs = {"num_workers": workers, "pin_memory": True, "drop_last": False}
+    kwargs = { "pin_memory": True, "drop_last": False}
     return DataLoader(dataset, batch_size=batch_size, **kwargs)
 
 
@@ -156,7 +157,7 @@ class TorchVision_FL(VisionDataset):
     def __len__(self) -> int:
         return len(self.data)
 
-def get_cifar_10(path_to_data="./data"):
+def get_cifar_10(path_to_data=PATH_data["cifar10"]):
     """Downloads CIFAR10 dataset and generates a unified training set (it will
     be partitioned later using the LDA partitioning mechanism."""
 

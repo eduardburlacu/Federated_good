@@ -15,30 +15,16 @@ def _download_data(dataset:str="mnist") -> Tuple[Dataset, Dataset]:
     Tuple[MNIST/CIFAR10, MNIST/CIFAR10]
         The dataset for training and the dataset for testing MNIST.
     """
-    if dataset.lower() == "mnist":
-        transform = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-        )
-        trainset = MNIST(PATH_data['mnist'], train=True, download=True, transform=transform)
-        testset = MNIST(PATH_data['mnist'], train=False, download=True, transform=transform)
-    elif dataset.lower() == "cifar10":
-        transform = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-            ]
-        )
-        trainset = CIFAR10(PATH_data['cifar10'], train=True, download=True, transform=transform)
-        testset  = CIFAR10(PATH_data['cifar10'], train=False,download=True, transform=transform)
-    else:
-        raise NameError("INVALID DATASET TO BE USED")
-
+    transform = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    )
+    trainset = MNIST(PATH_data['mnist'], train=True, download=True, transform=transform)
+    testset = MNIST(PATH_data['mnist'], train=False, download=True, transform=transform)
     return trainset, testset
 
 
 def _partition_data(
     num_clients,
-    dataset:Optional[str] = "mnist",
     iid: Optional[bool] = False,
     power_law: Optional[bool] = True,
     balance: Optional[bool] = False,
@@ -69,7 +55,7 @@ def _partition_data(
     Tuple[List[Dataset], Dataset]
         A list of dataset for each client and a single dataset to be use for testing the model.
     """
-    trainset, testset = _download_data(dataset=dataset)
+    trainset, testset = _download_data()
     if balance:
         trainset = _balance_classes(trainset, seed)
         

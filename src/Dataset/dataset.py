@@ -1,4 +1,4 @@
-"""MNIST dataset utilities for federated learning."""
+"""Dataset loading for federated learning."""
 
 
 from typing import Optional, Tuple, List
@@ -7,17 +7,16 @@ import torch
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader, random_split
 
-from src.Dataset.dataset_preparation import _partition_data
-
+from src.Dataset.dataset_preparation_mnist import _partition_data
+from src.Dataset.dataset_preparation_cifar10 import do_fl_partitioning, get_dataloader, get_cifar_10
 
 def load_datasets(  # pylint: disable=too-many-arguments
     config: DictConfig,
     num_clients: int,
-    dataset:str = "mnist",
     val_ratio: float = 0.1,
     batch_size: Optional[int] = 32,
     seed: Optional[int] = 42,
-) -> Tuple[List[DataLoader], List[DataLoader], DataLoader, List[float]]:
+) -> Tuple[List[DataLoader], List[DataLoader], DataLoader,]:
     """Creates the MNIST dataloaders to be fed into the model.
 
     Parameters
@@ -26,8 +25,6 @@ def load_datasets(  # pylint: disable=too-many-arguments
         Parameterises the dataset partitioning process
     num_clients : int
         The number of clients that hold a part of the data
-    dataset : str
-        The dataset to be used
     val_ratio : float, optional
         The ratio of training data that will be used for validation (between 0 and 1),
         by default 0.1
@@ -44,7 +41,6 @@ def load_datasets(  # pylint: disable=too-many-arguments
     print(f"Dataset partitioning config: {config}")
     datasets, testset, total_size = _partition_data(
         num_clients,
-        dataset=dataset,
         iid=config.iid,
         balance=config.balance,
         power_law=config.power_law,
@@ -53,9 +49,7 @@ def load_datasets(  # pylint: disable=too-many-arguments
     # Split each partition into train/val and create DataLoader
     trainloaders = []
     valloaders = []
-    datasizes = []
     for dataset in datasets:
-        datasizes.append(len(dataset)/total_size)
         len_val = int(len(dataset) / (1 / val_ratio))
         lengths = [len(dataset) - len_val, len_val]
         ds_train, ds_val = random_split(
@@ -64,4 +58,31 @@ def load_datasets(  # pylint: disable=too-many-arguments
         trainloaders.append(DataLoader(ds_train, batch_size=batch_size, shuffle=True))
         valloaders.append(DataLoader(ds_val, batch_size=batch_size))
 
-    return trainloaders, valloaders, DataLoader(testset, batch_size=batch_size), datasizes
+    return trainloaders, valloaders, DataLoader(testset, batch_size=batch_size)
+
+def load_datasets_lda(
+        num_clients: int,
+        val_ratio: float = 0.1,
+        batch_size: Optional[int] = 32,
+        alfa:float = 1000.,
+)-> Tuple[List[DataLoader], List[DataLoader], DataLoader,]:
+    train_path, testset = get_cifar_10()
+    fed_dir = do_fl_partitioning(
+        train_path,
+        pool_size=num_clients,
+        alpha=alfa,
+        num_classes=10,
+        val_ratio=val_ratio
+    )
+    trainloaders=[]
+    valloaders = []
+    for cid in range(num_clients):
+        trainloaders.append(
+            get_dataloader(fed_dir,str(cid),is_train=True,batch_size=batch_size,)
+        )
+        valloaders.append(
+            get_dataloader(fed_dir, str(cid), is_train=False, batch_size=batch_size, )
+        )
+
+    return trainloaders, valloaders, DataLoader(testset, batch_size=batch_size)
+
