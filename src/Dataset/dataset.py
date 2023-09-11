@@ -13,11 +13,12 @@ from src.Dataset.dataset_preparation import _partition_data
 def load_datasets(  # pylint: disable=too-many-arguments
     config: DictConfig,
     num_clients: int,
+    dataset:str = "mnist",
     val_ratio: float = 0.1,
     batch_size: Optional[int] = 32,
     seed: Optional[int] = 42,
 ) -> Tuple[List[DataLoader], List[DataLoader], DataLoader, List[float]]:
-    """Creates the dataloaders to be fed into the model.
+    """Creates the MNIST dataloaders to be fed into the model.
 
     Parameters
     ----------
@@ -25,6 +26,8 @@ def load_datasets(  # pylint: disable=too-many-arguments
         Parameterises the dataset partitioning process
     num_clients : int
         The number of clients that hold a part of the data
+    dataset : str
+        The dataset to be used
     val_ratio : float, optional
         The ratio of training data that will be used for validation (between 0 and 1),
         by default 0.1
@@ -41,6 +44,7 @@ def load_datasets(  # pylint: disable=too-many-arguments
     print(f"Dataset partitioning config: {config}")
     datasets, testset, total_size = _partition_data(
         num_clients,
+        dataset=dataset,
         iid=config.iid,
         balance=config.balance,
         power_law=config.power_law,

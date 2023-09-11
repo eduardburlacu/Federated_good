@@ -1,4 +1,4 @@
-"""Contains utility functions for CNN FL on MNIST."""
+"""Contains utility functions."""
 
 import os
 import time

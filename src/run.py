@@ -23,6 +23,7 @@ def main(cfg: DictConfig) -> None:
     if cfg.dataset.lower() in {"mnist", "cifar10"}:
         trainloaders, valloaders, testloader, datasizes = dataset.load_datasets(
             config=cfg.dataset_config,
+            dataset= cfg.dataset.lower(),
             num_clients=cfg.num_clients,
             batch_size=cfg.batch_size,
         )

@@ -1,0 +1,46 @@
+---
+dataset: synthetic_iid
+num_clients: 30 # total number of clients
+num_epochs: 20 # number of local epochs
+batch_size: 10
+num_rounds: 200
+clients_per_round: 10
+stragglers_fraction: 0.5
+learning_rate: 0.01
+mu: 0.0 # it can be >= 0
+
+client_resources:
+  num_cpus: 2
+  num_gpus: 0.0
+
+server_device: cpu
+
+dataset_config:
+  iid: false
+  balance: false
+  power_law: true
+
+federated_dataset_config:
+  min_dataset_size: 10
+  train_test_split: 0.8
+
+# in FedAvg, stragglers should be dropped. So we tell clients FedAvg is being used
+# by passing flag `drop_client`=True
+fit_config:
+  proximal_mu: ${mu}
+  drop_client: true
+
+model:
+  _target_: src.models.LogisticRegression
+  num_classes: 60
+
+strategy:
+  _target_: fedprox.strategy.FedAvgWithStragglerDrop #! this points to FedAvgWithStragglerDrop class in strategy.py, Note that we need the full module path (including `fedprox`)
+  fraction_fit: 0.00001 # because we want the number of clients to sample on each roudn to be solely defined by min_fit_clients
+  fraction_evaluate: 0.0
+  min_fit_clients: ${clients_per_round}
+  min_available_clients: ${clients_per_round}
+  min_evaluate_clients: 0
+  evaluate_metrics_aggregation_fn:
+    _target_: fedprox.strategy.weighted_average
+    _partial_: true # we dont' want this function to be evaluated when instantiating the strategy, we treat it as a partial and evaluate it when the strategy actuallly calls the function (in aggregate_evaluate())

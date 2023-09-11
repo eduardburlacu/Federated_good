@@ -1,13 +1,13 @@
 ---
-dataset: synthetic_0_0
+dataset: synthetic_0.5_0.5
 num_clients: 30 # total number of clients
 num_epochs: 20 # number of local epochs
 batch_size: 10
 num_rounds: 200
 clients_per_round: 10
-stragglers_fraction: [ 0.0, 0.1, 0.5, 0.9 ]
+stragglers_fraction: 0.5
 learning_rate: 0.01
-mu: 1.0 # it can be >= 0
+mu: 2.0 # it can be >= 0
 
 client_resources:
   num_cpus: 2

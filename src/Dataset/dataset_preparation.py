@@ -4,28 +4,41 @@ import numpy as np
 import torch
 import torchvision.transforms as transforms
 from torch.utils.data import ConcatDataset, Dataset, Subset, random_split
-from torchvision.datasets import MNIST
+from torchvision.datasets import MNIST, CIFAR10
 from src import PATH_data
 
-def _download_data() -> Tuple[Dataset, Dataset]:
-    """Downloads (if necessary) and returns the MNIST dataset.
+def _download_data(dataset:str="mnist") -> Tuple[Dataset, Dataset]:
+    """Downloads (if necessary) and returns the MNIST, CIFAR10 datasets.
 
     Returns
     -------
-    Tuple[MNIST, MNIST]
+    Tuple[MNIST/CIFAR10, MNIST/CIFAR10]
         The dataset for training and the dataset for testing MNIST.
     """
-    transform = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-    )
+    if dataset.lower() == "mnist":
+        transform = transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+        )
+        trainset = MNIST(PATH_data['mnist'], train=True, download=True, transform=transform)
+        testset = MNIST(PATH_data['mnist'], train=False, download=True, transform=transform)
+    elif dataset.lower() == "cifar10":
+        transform = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+            ]
+        )
+        trainset = CIFAR10(PATH_data['cifar10'], train=True, download=True, transform=transform)
+        testset  = CIFAR10(PATH_data['cifar10'], train=False,download=True, transform=transform)
+    else:
+        raise NameError("INVALID DATASET TO BE USED")
 
-    trainset = MNIST(PATH_data['mnist'], train=True, download=True, transform=transform)
-    testset = MNIST(PATH_data['mnist'], train=False, download=True, transform=transform)
     return trainset, testset
 
 
 def _partition_data(
     num_clients,
+    dataset:Optional[str] = "mnist",
     iid: Optional[bool] = False,
     power_law: Optional[bool] = True,
     balance: Optional[bool] = False,
@@ -56,7 +69,7 @@ def _partition_data(
     Tuple[List[Dataset], Dataset]
         A list of dataset for each client and a single dataset to be use for testing the model.
     """
-    trainset, testset = _download_data()
+    trainset, testset = _download_data(dataset=dataset)
     if balance:
         trainset = _balance_classes(trainset, seed)
         
