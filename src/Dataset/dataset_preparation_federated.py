@@ -15,7 +15,7 @@ class FederatedDataset(Dataset):
     '''
     ---------------Info regarding data.csv
     The columns are  [file path ex 000/0000001/pt] [label ex d] [client ex George] [img ie feature X, if the dataset is embedded]
-                            x[0]                      y=x[1]           cid=x[2]                     X = x[3]
+                            x[0]                      y=x[1]       client_name=x[2]                  X = x[3]
     '''
     clients = None
     def __init__(self, client_name, dataset_name, transform, test_train_split, type, min_no_samples, is_embedded):
@@ -90,13 +90,6 @@ def load_data(client_names, train_test_split, dataset_name, type, min_no_samples
         transform = EmbeddingTransformer()
     elif dataset_name == "shakespeare":
         transform = EmbeddingTransformerShakespeare()
-    elif dataset_name == "celeba":
-        def transform(x,y):
-            pil_img = Image.open(os.path.join(PATH['FedProx'], 'data', 'celeba', 'data', 'raw', 'img_align_celeba', x))
-            pil_img = pil_img.resize((84, 84)).convert('RGB')
-            x = transforms.ToTensor()(pil_img)
-            # print("x", x)
-            return x, torch.tensor(int(float(y)))
     else:
         transform = (lambda x,y: (torch.tensor(x), torch.tensor(int(float(y)))))
 
@@ -111,8 +104,9 @@ def load_data(client_names, train_test_split, dataset_name, type, min_no_samples
     )
     return dataset
 
-batch_size = 1
+
 if __name__ =='__main__':
+    batch_size = 1
     # How to find the length of each dataset, dropping clients with data less than n=3
     god_dataset = load_data([GOD_CLIENT_NAME], 0.5, 'train', 3, False)
     print(len(god_dataset))

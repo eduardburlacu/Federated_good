@@ -309,6 +309,7 @@ class FlowerClient(
             else:  # Offload a part of the training
                 # Wait for connection
                 if not self.connected:
+                    print(config)
                     self.connect(
                         other_addr=self.ip,
                         other_port=config["port"]

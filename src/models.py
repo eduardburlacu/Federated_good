@@ -1,6 +1,3 @@
-"""CNN model architecutre, training, and testing functions for MNIST."""
-
-
 from typing import List, Tuple
 
 import torch
@@ -210,6 +207,26 @@ class CNN_MNIST(torch.nn.Module):
         x = self.pool1(F.relu(self.conv1(x)))
         x = self.pool2(F.relu(self.conv2(x)))
         x = torch.flatten(x, 1)
+        x = F.relu(self.fc1(x))
+        x = F.softmax(self.fc2(x), dim=1)
+        return x
+
+class CNN_CIFAR(torch.nn.Module):
+    def __init__(self):
+        super(CNN_CIFAR, self).__init__()
+        self.conv1 = nn.Conv2d(3, 32, 3, padding='valid') #  32*30*30
+        self.pool1 = nn.MaxPool2d(2, 2)                   #  32*15*15
+        self.conv2 = nn.Conv2d(32,64, 3, padding='valid') #  64*13*13
+        self.pool2 = nn.MaxPool2d(2,2)                    #  64* 6* 6
+        self.conv3 = nn.Conv2d(64, 64 ,3, padding='valid')#  64* 4* 4
+        self.fc1 = nn.Linear(64* 4* 4, 64)
+        self.fc2 = nn.Linear(64, 10)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.pool1(F.relu(self.conv1(x)))
+        x = self.pool2(F.relu(self.conv2(x)))
+        x = F.relu(self.conv3(x))
+        x = torch.flatten(x,1)
         x = F.relu(self.fc1(x))
         x = F.softmax(self.fc2(x), dim=1)
         return x

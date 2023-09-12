@@ -15,7 +15,7 @@ import sys
 src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 sys.path.insert(0, src_path)
 #----------------------------Internal Imports-----------------------------
-from src.Dataset.federated_dataset import load_data
+from src.Dataset.dataset_preparation_federated import load_data
 
 
 def print_samples(dataset, num_samples=5):

@@ -28,6 +28,7 @@ federated_dataset_config:
 model:
   _target_: src.models.Net
   num_classes: 10
+  num_channels: 3
 
 client_manager:
   _target_: src.ClientManager.OffloadClientManager

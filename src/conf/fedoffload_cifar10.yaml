@@ -26,8 +26,7 @@ federated_dataset_config:
   train_test_split: 0.8
 
 model:
-  _target_: src.models.Net
-  num_classes: 10
+  _target_: src.models.CNN_CIFAR
 
 client_manager:
   _target_: src.ClientManager.OffloadClientManager
@@ -42,7 +41,7 @@ fit_config:
 
 strategy:
   _target_: src.strategy.FedProxOffload
-  model_num_layers: 5
+  model_num_layers: 7
   fraction_fit: 0.00001 # because we want the number of clients to sample on each round to be solely defined by min_fit_clients
   fraction_evaluate: 0.0
   min_fit_clients: 10

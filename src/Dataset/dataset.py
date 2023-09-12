@@ -7,9 +7,10 @@ import torch
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader, random_split
 
+from src import GOD_CLIENT_NAME
 from src.Dataset.dataset_preparation_mnist import _partition_data
 from src.Dataset.dataset_preparation_cifar10 import do_fl_partitioning, get_dataloader, get_cifar_10
-
+from src.Dataset.dataset_preparation_federated import load_data, FederatedDataset
 def load_datasets(  # pylint: disable=too-many-arguments
     config: DictConfig,
     num_clients: int,
@@ -60,7 +61,7 @@ def load_datasets(  # pylint: disable=too-many-arguments
 
     return trainloaders, valloaders, DataLoader(testset, batch_size=batch_size)
 
-def load_datasets_lda(
+def load_datasets_lda( # pylint: disable=too-many-arguments
         num_clients: int,
         val_ratio: float = 0.1,
         batch_size: Optional[int] = 32,
@@ -85,4 +86,42 @@ def load_datasets_lda(
         )
 
     return trainloaders, valloaders, DataLoader(testset, batch_size=batch_size)
+
+def load_dataset_federated(
+        config: DictConfig,
+        dataset_name:str,
+        batch_size: Optional[int] = 32,
+):
+    testset = load_data(
+        [GOD_CLIENT_NAME],
+        train_test_split= config.train_test_split,
+        dataset_name = dataset_name.lower(),
+        type="test",
+        min_no_samples=config.min_num_samples,
+        is_embedded=config.is_embedded,
+    )
+    testloader = DataLoader(testset,batch_size,shuffle=False)
+    trainloaders = []
+    valloaders = []
+    for client_name in FederatedDataset.clients:
+        trainset = load_data(
+            [client_name],
+            train_test_split=config.train_test_split,
+            dataset_name=dataset_name.lower(),
+            type="train",
+            min_no_samples=config.min_num_samples,
+            is_embedded=config.is_embedded)
+        trainloaders.append(DataLoader(trainset, batch_size, shuffle=True))
+        valset = load_data(
+            [client_name],
+            train_test_split=config.train_test_split,
+            dataset_name=dataset_name.lower(),
+            type="test",
+            min_no_samples=config.min_num_samples,
+            is_embedded=config.is_embedded,
+        )
+        valloaders.append(DataLoader(valset,batch_size, shuffle=False))
+
+    return trainloaders, valloaders, testloader
+    
 
