@@ -1,7 +1,7 @@
 ---
 title: SFD
-url: 
-labels: [FL, hierarchical FL, stragglers, RL] # please add between 4 and 10 single-word (maybe two-words) labels (e.g. "system heterogeneity", "image classification", "asynchronous", "weight sharing", "cross-silo")
+url: TBC
+labels: [Federated Learning, Split Learning, stragglers, RL] # please add between 4 and 10 single-word (maybe two-words) labels (e.g. "system heterogeneity", "image classification", "asynchronous", "weight sharing", "cross-silo")
 dataset: [MNIST, CIFAR10, Sent140, Shakespeare] # list of datasets you include in your baseline
 ---
 
@@ -70,12 +70,12 @@ For details, see `src/models` for MNIST and CIFAR models and `src/Models/` for t
 **Datasets:**  The settings are as follows:
 
 | Dataset     | #classes | #partitions |       partitioning method       |     partition settings      |
-|:------------|:--------:| :---: |:-------------------------------:|:---------------------------:|
-| MNIST       |    10    | 1000 |   pathological with power law   |    2 classes per client     |
-| CIFAR10     |    10    | 1000 | Latent Dirichlet Allocation (α) |    10 classes per client    |
-| Sent140     |    2     | 1000 |      Each client is a user      |              -              |
-| Shakespeare |    80    | 1000 |   Each client is a persoange    |              -              |
-| Synth(α, β) |    30    | 1000 |      Distribution Sampling      | (α, β) control i.i.d. -ness |
+|:------------|:--------:|:-----------:|:-------------------------------:|:---------------------------:|
+| MNIST       |    10    |    1000     |   pathological with power law   |    2 classes per client     |
+| CIFAR10     |    10    |    1000     | Latent Dirichlet Allocation (α) |    10 classes per client    |
+| Sent140     |    2     |    1000     |      Each client is a user      |              -              |
+| Shakespeare |    80    |    1129     |   Each client is a persoange    |              -              |
+| Synth(α, β) |    30    |    1000     |      Distribution Sampling      | (α, β) control i.i.d. -ness |
 
 
 
@@ -114,10 +114,10 @@ For details about environments, refer to the paper.
 **Dataset:**  The settings are as follows:
 
 | Dataset     | #classes | #partitions |       partitioning method       |     partition settings      |
-|:------------|:--------:| :---: |:-------------------------------:|:---------------------------:|
-| MNIST       |    10    | 1000 |   pathological with power law   |    2 classes per client     |
-| CIFAR10     |    10    | 1000 | Latent Dirichlet Allocation (α) |    10 classes per client    |
-| Shakespeare |    80    | 1000 |   Each client is a persoange    |              -              |
+|:------------|:--------:|:-----------:|:-------------------------------:|:---------------------------:|
+| MNIST       |    10    |    1000     |   pathological with power law   |    2 classes per client     |
+| CIFAR10     |    10    |    1000     | Latent Dirichlet Allocation (α) |    10 classes per client    |
+| Shakespeare |    80    |    1129     |   Each client is a persoange    |              -              |
 
 ### Experiment 3:
 **Motivation:** We now test the impact of our trained agent under the same environment as described in experiment 1 and assess the improvements.   
@@ -130,12 +130,12 @@ For details about environments, refer to the paper.
 We use Sent140 and synthetic datasets to assess how well the agent generalises to environments involving unforeseen datasets.
 
 | Dataset     | #classes | #partitions |       partitioning method       |     partition settings      |
-|:------------|:--------:| :---: |:-------------------------------:|:---------------------------:|
-| MNIST       |    10    | 1000 |   pathological with power law   |    2 classes per client     |
-| CIFAR10     |    10    | 1000 | Latent Dirichlet Allocation (α) |    10 classes per client    |
-| Sent140     |    2     | 1000 |      Each client is a user      |              -              |
-| Shakespeare |    80    | 1000 |   Each client is a persoange    |              -              |
-| Synth(α, β) |    30    | 1000 |      Distribution Sampling      | (α, β) control i.i.d. -ness |
+|:------------|:--------:|:-----------:|:-------------------------------:|:---------------------------:|
+| MNIST       |    10    |    1000     |   pathological with power law   |    2 classes per client     |
+| CIFAR10     |    10    |    1000     | Latent Dirichlet Allocation (α) |    10 classes per client    |
+| Sent140     |    2     |    1000     |      Each client is a user      |              -              |
+| Shakespeare |    80    |    1129     |   Each client is a persoange    |              -              |
+| Synth(α, β) |    30    |    1000     |      Distribution Sampling      | (α, β) control i.i.d. -ness |
 
 ### Experiment 4:
 **Motivation:** We now generalise our findings into the general setting of collaborative learning. A client may not always correspond to just a device, and different privacy levels impose a network topology. Settings like IoT(edge devices as unique, already assigned followers for each device), FL(dataflow private), SL(one cluster, trusted dataflow),or those already experimented in SL - FL hybrids like SFL or FedAdapt(one cluster, unique follower) can all be generalised as 2 network topologies, one of collaborative learning(FL) and a dataflow topology set by trust regions(the "span" of SL).
