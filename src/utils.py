@@ -79,7 +79,6 @@ def plot_metric_from_history(
     plt.savefig(Path(save_plot_path) / Path(f"{metric_type}_metrics{suffix}.png"))
     plt.close()
 
-
 def save_results_as_pickle(
     history: History,
     file_path: Union[str, Path],

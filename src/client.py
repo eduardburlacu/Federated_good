@@ -14,8 +14,10 @@ from torch.utils.data import DataLoader
 from src.Dataset.dataset_preparation_federated import load_data
 from src.models import test, train
 from src.Communication import Communicator
+from src.straggler_schedule import get_straggler_schedule
 from src.split_learn import split_model
 from src.utils import timeit
+
 
 
 class FlowerClient(
@@ -80,6 +82,7 @@ class FlowerClient(
         except:
             self.connection_failure = True
             raise ConnectionError()
+
 
     def get_properties(self, config: Dict[str, Scalar]) -> Dict[str, Scalar]:
         #Update capacity
@@ -172,7 +175,7 @@ class FlowerClient(
                     self.send_msg(
                         sock=self.to_socket(),
                         msg=msg,
-                    )   
+                    )
                     # Wait for backpropagation if split learning
                     gradients = self.recv_msg(self.to_socket())[1]
                     if split_layer > 0:
@@ -309,7 +312,7 @@ class FlowerClient(
             else:  # Offload a part of the training
                 # Wait for connection
                 if not self.connected:
-                    print(config)
+
                     self.connect(
                         other_addr=self.ip,
                         other_port=config["port"]
@@ -392,6 +395,12 @@ def gen_client_fn(
         np.random.choice(
             [0, 1], size=(num_rounds, num_clients), p=[1 - stragglers_frac, stragglers_frac]
         )
+    )
+    stragglers_mat = get_straggler_schedule(
+        num_clients=num_clients,
+        num_rounds=num_rounds,
+        stragglers_frac=stragglers_frac,
+        type="constant",
     )
 
     def client_fn(cid: str) -> FlowerClient:

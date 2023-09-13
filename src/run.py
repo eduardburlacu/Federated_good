@@ -14,7 +14,8 @@ from src import PATH_src, DEFAULT_SERVER_ADDRESS
 from src import client, server
 from src.ClientManager import OffloadClientManager
 from src.Dataset import dataset
-from src.utils import save_results_as_pickle,plot_metric_from_history, get_ports
+from src.utils import get_ports
+from src.utils import save_results_as_pickle,plot_metric_from_history
 
 @hydra.main(config_path=PATH_src["conf"], config_name="config_offload", version_base=None)
 def main(cfg: DictConfig) -> None:
@@ -50,7 +51,7 @@ def main(cfg: DictConfig) -> None:
         trainloaders, valloaders, testloader= dataset.load_datasets_lda(
             num_clients=cfg.num_clients,
             batch_size=cfg.batch_size,
-            alfa=100
+            alfa=cfg.alpha
         )
 
     elif cfg.dataset.lower() in {"shakespeare", "sent140", "nist", "synth_0_0", "synth_0.5_0.5", "synth_1_1"}:

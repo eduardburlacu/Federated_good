@@ -1,5 +1,5 @@
 import random
-from typing import List, Tuple, Dict, Set
+from typing import List, Tuple, Dict
 
 class ClusteringModule:
     def __init__(self,
@@ -129,26 +129,4 @@ class Scheduler:
                 clients=[ *jobs.keys(), *self.selected_cids]
 
         return jobs, mappings, clients
-
-
-if __name__=='__main__':
-    '''
-    flops = [15*n - n**2 for n in range(15)]
-    c = ClusteringModule(flops, 0.25, 0.75)
-    c.get_tiers()
-    c.print()
-    
-    '''
-    scheduler = Scheduler()
-    selected = '12 3 4 2 1 6 7 9'.split(sep=' ')
-    unselected = '13 14 19 20'.split(sep=' ')
-    capacity={ x: random.random() for x in [*selected, *unselected]}
-    results = scheduler.get_mappings(
-        selected_cids=selected,
-        unselected_cids=unselected,
-        capacity = capacity,
-        stragglers= set(selected[:4])
-    )
-    for result in results:
-        print(result)
 

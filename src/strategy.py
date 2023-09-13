@@ -3,13 +3,10 @@ from logging import WARNING
 
 from flwr.common.logger import log
 from flwr.common import (
-    Metrics,
     #EvaluateIns,
-    #EvaluateRes,
+    EvaluateRes,
     FitIns,
     FitRes,
-    GetPropertiesIns,
-    GetPropertiesRes,
     MetricsAggregationFn,
     NDArrays,
     Parameters,
@@ -29,26 +26,6 @@ Setting `min_available_clients` lower than `min_fit_clients` or
 connected to the server. `min_available_clients` must be set to a value larger
 than or equal to the values of `min_fit_clients` and `min_evaluate_clients`.
 """
-
-def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
-    """Aggregation function for weighted average during evaluation.
-
-    Parameters
-    ----------
-    metrics : List[Tuple[int, Metrics]]
-        The list of metrics to aggregate.
-
-    Returns
-    -------
-    Metrics
-        The weighted average metric.
-    """
-    # Multiply accuracy of each client by number of examples used
-    accuracies = [num_examples * m["accuracy"] for num_examples, m in metrics]
-    examples = [num_examples for num_examples, _ in metrics]
-
-    # Aggregate and return custom metric (weighted average)
-    return {"accuracy": int(sum(accuracies)) / int(sum(examples))}
 
 
 class FedAvgWithStragglerDrop(FedAvg):
@@ -135,6 +112,7 @@ class FedProxOffload(FedAvg):
         self.stragglers = init_stragglers
         self.capacities = init_capacities
         self.ports = ports
+        self.time_buffer = None
 
     def __repr__(self) -> str:
         rep = f"FedProx(offload=True, accept_failures={self.accept_failures})"
@@ -208,7 +186,7 @@ class FedProxOffload(FedAvg):
         # Convert results
         weights_results = []
         for client_prox,fit_res in results:
-            print(fit_res.metrics)
+            print(f"Time, straggler={fit_res.metrics['is_straggler']}: {fit_res.metrics['time']}")
             if "next" in fit_res.metrics:
                 # Update record of stragglers at the moment
                 self.stragglers[fit_res.metrics["cid"]] = bool(fit_res.metrics["next"])
@@ -224,7 +202,24 @@ class FedProxOffload(FedAvg):
         if self.fit_metrics_aggregation_fn:
             fit_metrics = [(res.num_examples, res.metrics) for _, res in results]
             metrics_aggregated = self.fit_metrics_aggregation_fn(fit_metrics)
+            #self.time_buffer = metrics_aggregated["train_time"]
         elif server_round == 1:  # Only log this warning once
             log(WARNING, "No fit_metrics_aggregation_fn provided")
 
         return parameters_aggregated, metrics_aggregated
+"""
+    def aggregate_evaluate(
+        self,
+        server_round: int,
+        results: List[Tuple[ClientProxy, EvaluateRes]],
+        failures: List[Union[Tuple[ClientProxy, EvaluateRes], BaseException]],
+    ) -> Tuple[Optional[float], Dict[str, Scalar]]:
+        \"\"\"Aggregate evaluation losses using weighted average.\"\"\"
+        loss_aggregated, metrics_aggregated= super().aggregate_evaluate(
+            server_round,
+            results,
+            failures,
+        )
+        metrics_aggregated["training_time"]= self.time_buffer
+        return loss_aggregated, metrics_aggregated
+"""

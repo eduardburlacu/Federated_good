@@ -1,5 +1,6 @@
 ---
 dataset: cifar10
+alpha: 100
 num_clients: 1000 # total number of clients
 num_epochs: 10 # number of local epochs
 batch_size: 10
@@ -47,7 +48,10 @@ strategy:
   min_fit_clients: 10
   min_evaluate_clients: 0
   min_available_clients: 20
+  fit_metrics_aggregation_fn:
+    _target_: src.server.fit_metrics_aggregation_fn
+    _partial_: true # we don't want this function to be evaluated when instantiating the strategy, we treat it as a partial and evaluate it when the strategy actuallly calls the function (in aggregate_fit())
   evaluate_metrics_aggregation_fn:
-    _target_: src.strategy.weighted_average
+    _target_: src.server.weighted_average
     _partial_: true # we don't want this function to be evaluated when instantiating the strategy, we treat it as a partial and evaluate it when the strategy actuallly calls the function (in aggregate_evaluate())
   proximal_mu: 2.0
