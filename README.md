@@ -1,39 +1,56 @@
 ---
-title: Federated Optimization in Heterogeneous Networks
-url: https://arxiv.org/abs/1812.06127
+title: Straggler-Follower Delegation for Mitigating Device Heterogeneity in Federated Learning
+url: 
 labels: [image classification, cross-device, stragglers] # please add between 4 and 10 single-word (maybe two-words) labels (e.g. "system heterogeneity", "image classification", "asynchronous", "weight sharing", "cross-silo")
 dataset: [mnist] # list of datasets you include in your baseline
 ---
 
-# FedProx: Federated Optimization in Heterogeneous Networks
+<script
+  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+  type="text/javascript">
+</script>
+
+# SFD: Straggler-Follower Delegation for Mitigating Device Heterogeneity in Federated Learning
 
 > Note: If you use this baseline in your work, please remember to cite the original authors of the paper as well as the Flower paper.
 
-**Paper:** https://arxiv.org/abs/1812.06127
+**Paper link:** 
 
-**Authors:** Tian Li, Anit Kumar Sahu, Manzil Zaheer, Maziar Sanjabi, Ameet Talwalkar and Virginia Smith.
+**Authors:** Eduard Burlacu, Stylianos Venieris, Aaron Zhao, Robert Mullins
 
-**Abstract:** Federated Learning is a distributed learning paradigm with two key challenges that differentiate it from traditional distributed optimization: (1) significant variability in terms of the systems characteristics on each device in the network (systems heterogeneity), and (2) non-identically distributed data across the network (statistical heterogeneity). In this work, we introduce a framework, FedProx, to tackle heterogeneity in federated networks. FedProx can be viewed as a generalization and re-parametrization of FedAvg, the current state-of-the-art method for federated learning. While this re-parameterization makes only minor modifications to the method itself, these modifications have important ramifications both in theory and in practice. Theoretically, we provide convergence guarantees for our framework when learning over data from non-identical distributions (statistical heterogeneity), and while adhering to device-level systems constraints by allowing each participating device to perform a variable amount of work (systems heterogeneity). Practically, we demonstrate that FedProx allows for more robust convergence than FedAvg across a suite of realistic federated datasets. In particular, in highly heterogeneous settings, FedProx demonstrates significantly more stable and accurate convergence behavior relative to FedAvg---improving absolute test accuracy by 22% on average.
+**Abstract:** 
 
 
 ## About this baseline
-**What's implemented:** The code in this directory replicates the experiments in *Federated Optimization in Heterogeneous Networks* (Li et al., 2018) for MNIST, which proposed the FedProx algorithm. Concretely, it replicates the results for MNIST in Figure 1 and 7.
+**What's implemented:** Source code used for producing the results in SFD paper.
 
-**Datasets:** MNIST from PyTorch's Torchvision
+**Datasets:**
+* MNIST from PyTorch's Torchvision
+* CIFAR10 from PyTorch's Torchvision
+* Sent140 from LEAF benchmark, processed as in FedProx paper
+* Shakespeare from LEAF benchmark, processed as in FedProx paper
+* Synthetic datasets as in LEAF paper
+ 
+**Hardware Setup:** These experiments were run on a desktop machine with 20 CPU threads. Any machine with 20 CPU cores or more would be able to run it as expected. For a device with N threads, the FL setting can be simulated by selecting \\[ frac{N}{2} \\] devices each round. 
+Why? the scheduler can call at most N more devices as followers and concurrency is important to properly simulate the FL setting.
 
-**Hardware Setup:** These experiments were run on a desktop machine with 24 CPU threads. Any machine with 4 CPU cores or more would be able to run it in a reasonable amount of time. Note: we install PyTorch with GPU support but by default, the entire experiment runs on CPU-only mode.
+**Note**: we install PyTorch with GPU support but by default. However, the entire experiment can run on CPU-only mode as explained below.
 
-**Contributors:** Charles Beauville and Javier Fernandez-Marques
+**Contributors:** Eduard Burlacu
 
 
 ## Experimental Setup
+# Experiment 1: Optimizing training time for classic FL network topology
+**TaskS:** We first test our offloading strategy by direct offloading $ \exp $  under 3
+* Image classification for MNIST
+* Image classification for CIFAR10
+* Sentiment analysis for Sent140
 
-**Task:** Image classification
 
-**Model:** This directory implements two models:
+**Model:** This directory implements three models:
 * A logistic regression model used in the FedProx paper for MNIST (see `models/LogisticRegression`). This is the model used by default.
-* A two-layer CNN network as used in the FedAvg paper (see `models/Net`)
-
+* A two-layer CNN network as used in the FedAvg paper for MNIST (see `models/Net`)
+* A two-layer CNN network as used in in the FedAvg paper for CIFAR10  (see `models/CNN_CIFAR`)
 **Dataset:** This baseline only includes the MNIST dataset. By default it will be partitioned into 1000 clients following a pathological split where each client has examples of two (out of ten) class labels. The number of examples in each client is derived by sampling from a powerlaw distribution. The settings are as follow:
 
 | Dataset | #classes | #partitions | partitioning method | partition settings |
@@ -106,4 +123,4 @@ python -m fedprox.main --config-name fedavg --multirun stragglers_fraction=0.0,0
 
 The above commands would generate results that you can plot and would look like:
 
-![](docs/FedProx_mnist.png)
+![](outputs_paper/13-50-03/centralized_metrics_FedProxOffload_powerlaw_C=1000_B=10_E=10_R=100_mu=2.0_strag=0.5.png)
