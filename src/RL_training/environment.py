@@ -18,6 +18,7 @@ from src.utils import get_ports
 from src.utils import save_results_as_pickle,plot_metric_from_history
 
 class Environment():
+    pass
 
 
 

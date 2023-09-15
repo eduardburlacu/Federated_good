@@ -1,6 +1,6 @@
 import time
 from collections import OrderedDict
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Tuple, Optional
 
 import flwr as fl
 import numpy as np
@@ -35,10 +35,11 @@ class FlowerClient(
         num_epochs: int,
         learning_rate: float,
         straggler_schedule: np.ndarray,
+        computation_frac: float,
         init_capacity:float,
-        ip_address:str,
-        index:int,
-        flops:int=50,
+        ip_address:Optional[str],
+        index:Optional[int],
+        flops:Optional[int]=50,
     ):  # pylint: disable=too-many-arguments
         '''
         Implements a unique FL participant.
@@ -57,32 +58,38 @@ class FlowerClient(
         self.cid = cid
         self.model =model
         self.net = instantiate(self.model).to(device)
+
         self.trainloader = trainloader
         self.valloader = valloader
         self.device = device
+
         self.num_epochs = num_epochs
-
         self.learning_rate = learning_rate
-        self.straggler_schedule = straggler_schedule
 
-        self.computation_frac = 1.0
+        self.straggler_schedule = straggler_schedule
+        self.computation_frac = computation_frac
         self.flops = flops
         self.mbps = -1.
-
         self.capacity = init_capacity
-        self.time: float = 0.
-        try:
-            Communicator.__init__(
-                self,
-                ip_address=ip_address,
-                index=index,
-            )
-            self.connection_failure = False
 
-        except:
+        self.time= 0.
+
+        if index is None or ip_address is None:
             self.connection_failure = True
-            raise ConnectionError()
+        else:
+            # In case the communication is unavailable,
+            # we let the straggler train alone.
+            try:
+                Communicator.__init__(
+                    self,
+                    ip_address=ip_address,
+                    index=index,
+                )
+                self.connection_failure = False
 
+            except:
+                self.connection_failure = True
+                #raise ConnectionError()
 
     def get_properties(self, config: Dict[str, Scalar]) -> Dict[str, Scalar]:
         #Update capacity
@@ -152,45 +159,54 @@ class FlowerClient(
                 lr=self.learning_rate,
                 momentum=momentum,
             )
-        else: optimizer = None
-
-        for e in range(num_epochs):
-
-            for batch_idx, (features, targets) in enumerate(self.trainloader):
-                if batch_idx<= int(frac * len(self.trainloader)):
-                    features, targets = features.to(self.device), targets.to(self.device)
-                    if split_layer>0:
+            for e in range(num_epochs):
+                for batch_idx, (features, targets) in enumerate(self.trainloader):
+                    if batch_idx<= int(frac * len(self.trainloader)):
+                        features, targets = features.to(self.device), targets.to(self.device)
+                        proximal_term = 0.0
                         optimizer.zero_grad()
-                    proximal_term = 0.0
-                    for local_weights, global_weights in zip(self.net.parameters(), global_parms):
-                        proximal_term += (local_weights - global_weights).norm(2)
-                    smashed_activations = self.net(features)
-                    # Transfer data to other device
-                    msg = ["MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER",
-                           split_layer,
-                           proximal_term,
-                           smashed_activations.cpu(),
-                           targets.cpu()
-                           ]
-                    self.send_msg(
-                        sock=self.to_socket(),
-                        msg=msg,
-                    )
-                    # Wait for backpropagation if split learning
-                    gradients = self.recv_msg(self.to_socket())[1]
-                    if split_layer > 0:
-                        gradients = gradients.to(self.device)
-                        smashed_activations.backward(gradients)
+                        for local_weights, global_weights in zip(self.net.parameters(), global_parms):
+                            proximal_term += (local_weights - global_weights).norm(2)
+                        smashed_activations = self.net(features)
+                        # Transfer data to other device
+                        msg = ["MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER",
+                               split_layer,
+                               proximal_term,
+                               smashed_activations.cpu(),
+                               targets.cpu()
+                               ]
+                        self.send_msg(
+                            sock=self.to_socket(),
+                            msg=msg,
+                        )
+                        # Wait for backpropagation if split learning
+                        gradients = self.recv_msg(self.to_socket())[1]
+                        if split_layer > 0:
+                            gradients = gradients.to(self.device)
+                            smashed_activations.backward(gradients)
+                        msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER',
+                               self.cid,
+                               self.get_parameters({}),
+                               len(self.trainloader),
+                               ]
+                        self.send_msg(sock=self.to_socket(), msg=msg)
 
-        msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER',
-               self.cid,
-               self.get_parameters({}),
-               len(self.trainloader),
-               ]
-        self.send_msg(sock=self.to_socket(), msg=msg)
+        else: #Direct offload
+            # Transfer data to other device
+            msg = ["MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER",
+                   self.trainloader,
+                   self.cid
+                   ]
+            self.send_msg(
+                sock=self.to_socket(),
+                msg=msg,
+            )
 
-    def split_follower(self, proximal_mu, momentum: float = 0.9):
-
+    def split_follower(self,
+                       proximal_mu:float,
+                       momentum: float = 0.9,
+                       frac: float = 1.0,
+    ):
         # Wait for forward prop
         msg = self.recv_msg(
             sock= self.to_socket(),
@@ -204,6 +220,22 @@ class FlowerClient(
                     { "is_straggler": False,
                       "cid": cid, }
                     )
+        elif len(msg)==3:
+            trainloader, cid = msg[1:]
+            train(
+                self.net,
+                trainloader= trainloader,
+                device=self.device,
+                epochs=self.num_epochs,
+                learning_rate=self.learning_rate,
+                proximal_mu=proximal_mu,
+                computation_frac=frac,
+            )
+            return self.get_parameters({}), len(trainloader), {
+                "is_straggler": self.computation_frac != 1.0,
+                "cid": cid,
+            }
+
         else:
             criterion = nn.CrossEntropyLoss()
             split_layer, proximal_term_straggler, smashed_activations, targets = msg[1:]
@@ -251,8 +283,8 @@ class FlowerClient(
             self.straggler_schedule[int(config["curr_round"]) - 1]
             and self.num_epochs > 1
         ):
-            num_epochs = np.random.randint(1, self.num_epochs)
-            self.computation_frac = num_epochs / self.num_epochs
+            #num_epochs = np.random.randint(1, self.num_epochs)
+            #self.computation_frac = num_epochs / self.num_epochs
 
             if "drop_client" in config:
                 if config["drop_client"]:
@@ -267,10 +299,9 @@ class FlowerClient(
                     )
 
         else:
-            num_epochs = self.num_epochs
+            #num_epochs = self.num_epochs
             self.computation_frac = 1.0
 
-        #self.disconnect(self.sock)
 
         if "follower" in config:
             # Wait for connection to straggler(s)
@@ -284,7 +315,7 @@ class FlowerClient(
             result = None
             while result is None:
                 result = self.split_follower(proximal_mu=config["proximal_mu"])
-            print(f'Offloader {self.cid} has finished training round')
+            print(f'Follower {self.cid} has finished training round')
 
             return result
 
@@ -295,13 +326,14 @@ class FlowerClient(
                     self.net,
                     self.trainloader,
                     self.device,
-                    epochs=num_epochs,
+                    epochs=self.num_epochs,
                     learning_rate=self.learning_rate,
                     proximal_mu=config["proximal_mu"],
+                    computation_frac=self.computation_frac
                 )
                 print(f'Regular client {self.cid} has finished training')
                 return self.get_parameters({}), len(self.trainloader), {
-                    "is_straggler": num_epochs==self.num_epochs,
+                    "is_straggler": self.computation_frac!=1.0,
                     "cid": self.cid,
                     "next": self.straggler_schedule[min(
                         config["curr_round"],
@@ -312,12 +344,10 @@ class FlowerClient(
             else:  # Offload a part of the training
                 # Wait for connection
                 if not self.connected:
-
                     self.connect(
                         other_addr=self.ip,
                         other_port=config["port"]
                     )
-
                 if len(list(self.net.children())) != len(parameters):
                     self.net = instantiate(self.model).to(self.device)
 
@@ -325,7 +355,7 @@ class FlowerClient(
 
                 self.split_train(
                     split_layer=config["split_layer"],
-                    num_epochs=num_epochs,
+                    num_epochs=self.num_epochs,
                 )
 
                 print(f'Straggler {self.cid} has finished training round')
@@ -357,6 +387,7 @@ def gen_client_fn(
     model: DictConfig,
     ip_address:str,
     ports:Dict[str,int],
+    beta:Optional[float] = 0.85,
 ) -> Callable[[str], FlowerClient]:  # pylint: disable=too-many-arguments
     """Generates the client function that creates the Flower Clients.
 
@@ -388,15 +419,11 @@ def gen_client_fn(
         the DataLoader that will be used for testing
     """
 
-    # Defines a staggling schedule for each clients, i.e at which round will they
-    # be a straggler. This is done so at each round the proportion of staggling
-    # clients is respected
-    stragglers_mat = np.transpose(
-        np.random.choice(
-            [0, 1], size=(num_rounds, num_clients), p=[1 - stragglers_frac, stragglers_frac]
-        )
-    )
-    stragglers_mat = get_straggler_schedule(
+    # Defines a staggling schedule for each client, i.e at who and at which round will
+    # be a straggler and how much it can perform in a given time.
+    # This is done so at each round the proportion of staggling clients is respected
+
+    stragglers_mat, computation_fracs = get_straggler_schedule(
         num_clients=num_clients,
         num_rounds=num_rounds,
         stragglers_frac=stragglers_frac,
@@ -420,6 +447,7 @@ def gen_client_fn(
             num_epochs=num_epochs,
             learning_rate=learning_rate,
             straggler_schedule=stragglers_mat[int(cid)],
+            computation_frac=computation_fracs[cid],
             init_capacity=capacities[cid],
             ip_address=ip_address,
             index= index

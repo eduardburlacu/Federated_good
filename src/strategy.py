@@ -112,7 +112,6 @@ class FedProxOffload(FedAvg):
         self.stragglers = init_stragglers
         self.capacities = init_capacities
         self.ports = ports
-        self.time_buffer = None
 
     def __repr__(self) -> str:
         rep = f"FedProx(offload=True, accept_failures={self.accept_failures})"

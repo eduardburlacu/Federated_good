@@ -1,4 +1,5 @@
-from typing import List, Tuple
+import time
+from typing import List, Tuple, Callable
 
 import torch
 import torch.nn as nn
@@ -76,6 +77,12 @@ class LogisticRegression(nn.Module):
         output_tensor = self.fc(torch.flatten(input_tensor, 1))
         return output_tensor
 
+def straggler_delayed(func:Callable):
+    def wrapper(*args,**kwargs):
+        dt = time.time()
+        result = func(*args,**kwargs)
+        dt =( time.time() - dt ) *(1-kwargs["computation_frac"])
+
 
 def train(  # pylint: disable=too-many-arguments
     net: nn.Module,
@@ -84,6 +91,7 @@ def train(  # pylint: disable=too-many-arguments
     epochs: int,
     learning_rate: float,
     proximal_mu: float,
+    computation_frac: float =1.0,
 ) -> None:
     """Train the network on the training set.
 
@@ -101,7 +109,9 @@ def train(  # pylint: disable=too-many-arguments
         The learning rate for the SGD optimizer.
     proximal_mu : float
         Parameter for the weight of the proximal term.
+
     """
+    dt = time.time()
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate, weight_decay=0.001)
     global_params = [val.detach().clone() for val in net.parameters()]
@@ -110,6 +120,8 @@ def train(  # pylint: disable=too-many-arguments
         net = _train_one_epoch(
             net, global_params, trainloader, device, criterion, optimizer, proximal_mu
         )
+    dt = (time.time() - dt) *( 1. - computation_frac)
+    time.sleep(dt)
 
 
 def _train_one_epoch(  # pylint: disable=too-many-arguments

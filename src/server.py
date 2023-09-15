@@ -1,6 +1,5 @@
 from collections import OrderedDict
 from typing import Callable, Dict, Optional, Tuple, List
-
 import torch
 from flwr.common import Metrics
 from flwr.common.typing import NDArrays, Scalar, Metrics
@@ -51,7 +50,6 @@ def gen_evaluate_fn(
     Callable[ [int, NDArrays, Dict[str, Scalar]], Optional[Tuple[float, Dict[str, Scalar]]] ]
         The centralized evaluation function.
     """
-
     def evaluate(
         server_round: int, parameters_ndarrays: NDArrays, config: Dict[str, Scalar]
     ) -> Optional[Tuple[float, Dict[str, Scalar]]]:
