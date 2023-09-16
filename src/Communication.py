@@ -1,4 +1,6 @@
+import time
 from signal import signal, SIGPIPE, SIG_DFL
+import sys
 import pickle
 import struct
 import socket
@@ -10,12 +12,13 @@ logger = logging.getLogger(__name__)
 
 
 class Communicator(object):
-	def __init__(self, ip_address, index ):
+	def __init__(self, ip_address:str, index:int):
 		self.ip = ip_address
 		self.index = index
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.connected = False
 		self.connection = None
+		self.mbps = - 1.
 
 
 	def connect(self,other_addr,other_port):
@@ -51,9 +54,12 @@ class Communicator(object):
 		return self.connection if self.connection else self.sock
 
 	def send_msg(self, sock, msg):
+		dt = time.time()
 		msg_pickle = pickle.dumps(msg)
 		sock.sendall(struct.pack(">I", len(msg_pickle)))
 		sock.sendall(msg_pickle)
+		dt = time.time() - dt
+		self.mbps = sys.getsizeof(msg_pickle)/ (dt * 1E6)
 		logger.debug(msg[0]+'sent to'+str(sock.getpeername()[0])+':'+str(sock.getpeername()[1]))
 
 	def recv_msg(self, sock, expect_msg_type=None):

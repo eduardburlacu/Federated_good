@@ -4,7 +4,7 @@ from logging import WARNING
 from flwr.common.logger import log
 from flwr.common import (
     #EvaluateIns,
-    EvaluateRes,
+    #EvaluateRes,
     FitIns,
     FitRes,
     MetricsAggregationFn,
@@ -144,8 +144,7 @@ class FedProxOffload(FedAvg):
         result=[]
         for cid, client in zip(clients_cid, clients):
             config = {}
-            if self.on_fit_config_fn is not None:
-                # Custom fit config function provided
+            if self.on_fit_config_fn is not None: # Custom fit config function provided
                 config = self.on_fit_config_fn(server_round)
 
             config["curr_round"]= server_round
@@ -156,8 +155,6 @@ class FedProxOffload(FedAvg):
                 config["follower"] = jobs[cid]
                 config["split_layer"] = self.agent.exploit()
             elif cid in ports: #straggler configuration
-                #res: GetPropertiesRes = client.get_properties(GetPropertiesIns({"curr_round":server_round}),timeout=None)
-                #if res.properties["straggler"]==1:
                 config["port"] = ports[cid]
                 config["split_layer"] = self.agent.exploit()
                 #del res

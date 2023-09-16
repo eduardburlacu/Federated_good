@@ -15,11 +15,12 @@ from src import client, server
 from src.ClientManager import OffloadClientManager
 from src.Dataset import dataset
 from src.utils import get_ports
-from src.utils import save_results_as_pickle,plot_metric_from_history
+from src.utils import save_results_as_pickle,plot_metric_from_history,set_random_seed
 
 @hydra.main(config_path=PATH_src["conf"], config_name="config_offload", version_base=None)
 def main(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
+    set_random_seed(cfg.seed)
 
     # Instantiate strategy requirements according to config
     ports = get_ports(cfg.num_clients)

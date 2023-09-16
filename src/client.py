@@ -35,11 +35,11 @@ class FlowerClient(
         num_epochs: int,
         learning_rate: float,
         straggler_schedule: np.ndarray,
-        computation_frac: float,
-        init_capacity:float,
-        ip_address:Optional[str],
-        index:Optional[int],
-        flops:Optional[int]=50,
+        computation_frac: Optional[float],  # What fraction of the train load a device can solve
+        init_capacity: Optional[float],     # Capacity initializer
+        ip_address:Optional[str],           # Communication address
+        index:Optional[int],                # Communication host
+
     ):  # pylint: disable=too-many-arguments
         '''
         Implements a unique FL participant.
@@ -68,8 +68,7 @@ class FlowerClient(
 
         self.straggler_schedule = straggler_schedule
         self.computation_frac = computation_frac
-        self.flops = flops
-        self.mbps = -1.
+
         self.capacity = init_capacity
 
         self.time= 0.
@@ -93,7 +92,7 @@ class FlowerClient(
 
     def get_properties(self, config: Dict[str, Scalar]) -> Dict[str, Scalar]:
         #Update capacity
-        self.capacity = max(self.mbps / self.flops, 0.0)
+        self.capacity = max(self.mbps / self.computation_frac, 0.0)
 
         properties = {
             "port": self.index,
@@ -383,10 +382,10 @@ def gen_client_fn(
     valloaders: List[DataLoader],
     learning_rate: float,
     stragglers_frac: float,
-    capacities:Dict[str,float],
+    capacities:Optional[Dict[str,float]],
     model: DictConfig,
-    ip_address:str,
-    ports:Dict[str,int],
+    ip_address:Optional[str],
+    ports:Optional[Dict[str,int]],
     beta:Optional[float] = 0.85,
 ) -> Callable[[str], FlowerClient]:  # pylint: disable=too-many-arguments
     """Generates the client function that creates the Flower Clients.

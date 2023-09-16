@@ -18,11 +18,11 @@ from src import PATH_src, PORT_ROOT
 from src.Communication import Communicator
 
 def set_random_seed(seed: int):
-    random.seed(1+seed)
-    np.random.seed(12 + seed)
-    torch.manual_seed(123 + seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
     if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(123 + seed) # Set seed for CUDA if available
+        torch.cuda.manual_seed_all(seed) # Set seed for CUDA if available
 
 def server_address(ip:str,host:int)->str:
     return ''.join([ip,":",str(host)])
