@@ -12,13 +12,15 @@ logger = logging.getLogger(__name__)
 
 
 class Communicator(object):
+	beta = 0.85
+
 	def __init__(self, ip_address:str, index:int):
 		self.ip = ip_address
 		self.index = index
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.connected = False
 		self.connection = None
-		self.mbps = - 1.
+		self.mbps = 0.
 
 
 	def connect(self,other_addr,other_port):
@@ -59,7 +61,7 @@ class Communicator(object):
 		sock.sendall(struct.pack(">I", len(msg_pickle)))
 		sock.sendall(msg_pickle)
 		dt = time.time() - dt
-		self.mbps = sys.getsizeof(msg_pickle)/ (dt * 1E6)
+		self.mbps = (1.- Communicator.beta) * self.mbps + Communicator.beta * sys.getsizeof(msg_pickle)/ (dt * 1E6)
 		logger.debug(msg[0]+'sent to'+str(sock.getpeername()[0])+':'+str(sock.getpeername()[1]))
 
 	def recv_msg(self, sock, expect_msg_type=None):

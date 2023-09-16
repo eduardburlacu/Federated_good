@@ -134,7 +134,7 @@ class FlowerClient(
                 #send back
                 self.send_msg(sock=self.to_socket(),msg=msg,)
         else:
-            self.mbps = -1.
+            self.mbps = 0.
 
     def split_train(
             self,
@@ -386,7 +386,6 @@ def gen_client_fn(
     model: DictConfig,
     ip_address:Optional[str],
     ports:Optional[Dict[str,int]],
-    beta:Optional[float] = 0.85,
 ) -> Callable[[str], FlowerClient]:  # pylint: disable=too-many-arguments
     """Generates the client function that creates the Flower Clients.
 

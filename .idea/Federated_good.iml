@@ -5,6 +5,9 @@
       <sourceFolder url="file://$MODULE_DIR$/tests" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/add_doc" />
       <excludeFolder url="file://$MODULE_DIR$/config" />
+      <excludeFolder url="file://$MODULE_DIR$/multirun" />
+      <excludeFolder url="file://$MODULE_DIR$/outputs" />
+      <excludeFolder url="file://$MODULE_DIR$/outputs_paper" />
     </content>
     <orderEntry type="jdk" jdkName="fedprox" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
