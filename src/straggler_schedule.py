@@ -2,7 +2,7 @@ from typing import Tuple, List, Dict, Optional
 import numpy as np
 from numpy.typing import NDArray
 from src import SEED
-np.random.seed(SEED)
+
 
 def get_straggler_schedule(
         num_clients:int,
@@ -10,6 +10,7 @@ def get_straggler_schedule(
         stragglers_frac:float,
         type:str = "constant",
 )-> NDArray:
+    np.random.seed(SEED)
     if type == "bernoulli":
         return np.transpose(
             np.random.choice(
@@ -31,7 +32,7 @@ def get_straggler_schedule(
         for idx in range(num_clients):
             if target_clients[idx] == 1:
                 schedule[idx,:] = np.ones(num_rounds)
-                computation_frac[str(idx)] = np.random.beta(2,5)
+                computation_frac[str(idx)] = np.random.beta(1,1) # (2, 5)
             else:
                 computation_frac[str(idx)] = 1.0
 
