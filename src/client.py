@@ -278,9 +278,6 @@ class FlowerClient(
             self.straggler_schedule[int(config["curr_round"]) - 1]
             and self.num_epochs > 1
         ):
-            #num_epochs = np.random.randint(1, self.num_epochs)
-            #self.computation_frac = num_epochs / self.num_epochs
-            print(config)
             if "drop_client" in config:
                 if config["drop_client"]:
                     # return without doing any training.
@@ -293,10 +290,7 @@ class FlowerClient(
                          }
                     )
 
-        else:
-            #num_epochs = self.num_epochs
-            self.computation_frac = 1.0
-
+        else: self.computation_frac = 1.0
 
         if "follower" in config:
             # Wait for connection to straggler(s)
@@ -381,8 +375,8 @@ def gen_client_fn(
     stragglers_frac: float,
     capacities:Optional[Dict[str,float]],
     model: DictConfig,
-    ip_address:Optional[str],
-    ports:Optional[Dict[str,int]],
+    ip_address:Optional[str]=None,
+    ports:Optional[Dict[str,int]]=None,
 ) -> Tuple[
      Callable[[str], FlowerClient],
     Dict[str, bool]
@@ -436,7 +430,12 @@ def gen_client_fn(
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         trainloader = trainloaders[int(cid)]
         valloader = valloaders[int(cid)]
-        index = ports[cid]
+        # Allow offload=false option
+        if ports is None:
+            index = None
+        else:
+            index = ports[cid]
+
         return FlowerClient(
             cid=cid,
             model=model,

@@ -16,7 +16,7 @@ from flwr.common import (
 )
 
 from flwr.server.client_proxy import ClientProxy
-from flwr.server.strategy import FedAvg
+from flwr.server.strategy import FedAvg, FedProx
 from flwr.server.strategy.aggregate import aggregate
 
 from src.ClientManager import OffloadClientManager
@@ -218,3 +218,46 @@ class FedProxOffload(FedAvg):
         metrics_aggregated["training_time"]= self.time_buffer
         return loss_aggregated, metrics_aggregated
 """
+
+
+
+
+class FedProxNonOffload(FedProx):
+    def __repr__(self) -> str:
+        rep = f"FedProx(offload=False, accept_failures={self.accept_failures})"
+        return rep
+
+    def aggregate_fit(
+        self,
+        server_round: int,
+        results: List[Tuple[ClientProxy, FitRes]],
+        failures: List[Union[Tuple[ClientProxy, FitRes], BaseException]],
+    ) -> Tuple[Optional[Parameters], Dict[str, Scalar]]:
+        """Aggregate fit results using weighted average."""
+
+        if not results:
+            return None, {}
+        # Do not aggregate if there are failures and failures are not accepted
+        if not self.accept_failures and failures:
+            return None, {}
+
+        # Convert results
+        weights_results = []
+        for client_prox,fit_res in results:
+            print(f"Time, straggler={fit_res.metrics['is_straggler']}: {fit_res.metrics['time']}")
+            weight = parameters_to_ndarrays(fit_res.parameters)
+            if len(weight)>0: #Filter stragglers aided by followers
+                weights_results.append((weight, fit_res.num_examples))
+
+        parameters_aggregated = ndarrays_to_parameters(aggregate(weights_results))
+
+        # Aggregate custom metrics if aggregation fn was provided
+        metrics_aggregated = {}
+        if self.fit_metrics_aggregation_fn:
+            fit_metrics = [(res.num_examples, res.metrics) for _, res in results]
+            metrics_aggregated = self.fit_metrics_aggregation_fn(fit_metrics)
+            print(metrics_aggregated)
+        elif server_round == 1:  # Only log this warning once
+            log(WARNING, "No fit_metrics_aggregation_fn provided")
+
+        return parameters_aggregated, metrics_aggregated

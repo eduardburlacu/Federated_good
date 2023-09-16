@@ -21,17 +21,15 @@ dataset_config:
   balance: false
   power_law: true
 
-federated_dataset_config:
-  min_dataset_size: 10
-  train_test_split: 0.8
-
-heterogeneity:
-  flops_device: 0.5 # Beta distribution parameters equal and of this magnitude
-  mbps_device: 0.5 # Beta distribution parameters equal and of this magnitude
-  lda_dataset: 1 # if balanced LDA partitioning, parameter alfa sets the heterogeneity among classes to be predicted
-
-  KLD_cluster: 1
-  Z_cluster: 1
+#federated_dataset_config:
+#  min_dataset_size: 10
+#  train_test_split: 0.8
+#heterogeneity:
+#  flops_device: 0.5 # Beta distribution parameters equal and of this magnitude
+#  mbps_device: 0.5 # Beta distribution parameters equal and of this magnitude
+#  lda_dataset: 1 # if balanced LDA partitioning, parameter alfa sets the heterogeneity among classes to be predicted
+#  KLD_cluster: 1
+#  Z_cluster: 1
 
 model:
   _target_: src.models.Net
@@ -39,10 +37,10 @@ model:
 
 client_manager:
   _target_: src.ClientManager.OffloadClientManager
-  scheduler: round_robin
+  schedule: round_robin
 
 agent:
-  _target_: src.utils.BasicAgent
+  _target_: src.Agent.basic.BasicAgent
   n1: 0
 
 fit_config:
@@ -53,13 +51,11 @@ strategy:
   model_num_layers: 5
   fraction_fit: 0.00001 # because we want the number of clients to sample on each round to be solely defined by min_fit_clients
   fraction_evaluate: 0.0
-  min_fit_clients: 10
   min_evaluate_clients: 0
-  min_available_clients: 20
   fit_metrics_aggregation_fn:
     _target_: src.server.fit_metrics_aggregation_fn
     _partial_: true # we don't want this function to be evaluated when instantiating the strategy, we treat it as a partial and evaluate it when the strategy actuallly calls the function (in aggregate_fit())
   evaluate_metrics_aggregation_fn:
     _target_: src.server.weighted_average
     _partial_: true # we don't want this function to be evaluated when instantiating the strategy, we treat it as a partial and evaluate it when the strategy actuallly calls the function (in aggregate_evaluate())
-  proximal_mu: 2.0
+  proximal_mu: ${mu}

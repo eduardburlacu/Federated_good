@@ -8,6 +8,7 @@
       <excludeFolder url="file://$MODULE_DIR$/multirun" />
       <excludeFolder url="file://$MODULE_DIR$/outputs" />
       <excludeFolder url="file://$MODULE_DIR$/outputs_paper" />
+      <excludeFolder url="file://$MODULE_DIR$/src/Dataset/data" />
     </content>
     <orderEntry type="jdk" jdkName="fedprox" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

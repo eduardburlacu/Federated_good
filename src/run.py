@@ -22,7 +22,6 @@ def main(cfg: DictConfig) -> None:
 
     # Instantiate strategy requirements according to config
     ports = get_ports(cfg.num_clients)
-    agent = instantiate(cfg.agent)
 
     #init_stragglers = {str(cid): round(cid / cfg.num_clients) for cid in range(cfg.num_clients)}
     base_capacity = 1 / cfg.num_clients
@@ -32,6 +31,7 @@ def main(cfg: DictConfig) -> None:
     # Set server's device
     device = cfg.server_device
 
+    #Data loading
     if cfg.dataset.lower() == "mnist":
         """
         POWER LAW PARTITIONING WITH MNIST DATASET
@@ -71,33 +71,55 @@ def main(cfg: DictConfig) -> None:
     # get function that will be executed by the strategy's configure_fit() method
     fit_config_fn = server.get_on_fit_config(cfg.fit_config)
 
+    # instantiate strategy
     # prepare function that will be used to spawn each client
-    client_fn, init_stragglers = client.gen_client_fn(
-        num_clients=cfg.num_clients,
-        num_rounds=cfg.num_rounds,
-        num_epochs=cfg.num_epochs,
-        trainloaders=trainloaders,
-        valloaders=valloaders,
-        learning_rate=cfg.learning_rate,
-        stragglers_frac=cfg.stragglers_fraction,
-        capacities=init_capacities,
-        model=cfg.model,
-        ip_address=DEFAULT_SERVER_ADDRESS,
-        ports=ports,
-    )
+    if cfg.offload:
+        # prepare function that will be used to spawn each client
+        client_fn, init_stragglers = client.gen_client_fn(
+            num_clients=cfg.num_clients,
+            num_rounds=cfg.num_rounds,
+            num_epochs=cfg.num_epochs,
+            trainloaders=trainloaders,
+            valloaders=valloaders,
+            learning_rate=cfg.learning_rate,
+            stragglers_frac=cfg.stragglers_fraction,
+            capacities=init_capacities,
+            model=cfg.model,
+            ip_address=DEFAULT_SERVER_ADDRESS,
+            ports=ports,
+        )
 
-    #Instantiate strategy
-    strategy = instantiate(
-        cfg.strategy,
-        min_fit_clients=cfg.clients_per_round,
-        min_available_clients=2*cfg.clients_per_round,
-        evaluate_fn=evaluate_fn,
-        on_fit_config_fn=fit_config_fn,
-        agent=agent,
-        init_stragglers=init_stragglers,
-        init_capacities=init_capacities,
-        ports=ports,
-    )
+        strategy = instantiate(
+            cfg.strategy,
+            min_fit_clients=cfg.clients_per_round,
+            min_available_clients=2*cfg.clients_per_round,
+            evaluate_fn=evaluate_fn,
+            on_fit_config_fn=fit_config_fn,
+            init_stragglers=init_stragglers,
+            init_capacities=init_capacities,
+            ports=ports,
+        )
+    else:
+        client_fn, init_stragglers = client.gen_client_fn(
+            num_clients=cfg.num_clients,
+            num_rounds=cfg.num_rounds,
+            num_epochs=cfg.num_epochs,
+            trainloaders=trainloaders,
+            valloaders=valloaders,
+            learning_rate=cfg.learning_rate,
+            stragglers_frac=cfg.stragglers_fraction,
+            capacities=init_capacities,
+            model=cfg.model,
+        )
+
+
+        strategy = instantiate(
+            cfg.strategy,
+            min_fit_clients=cfg.clients_per_round,
+            min_available_clients=2 * cfg.clients_per_round,
+            evaluate_fn=evaluate_fn,
+            on_fit_config_fn=fit_config_fn,
+        )
 
     # Start simulation
     history = fl.simulation.start_simulation(
