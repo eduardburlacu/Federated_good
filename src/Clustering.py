@@ -1,4 +1,3 @@
-import random
 from typing import List, Tuple, Dict
 
 class ClusteringModule:
@@ -110,7 +109,7 @@ class Scheduler:
             stragglers=stragglers,
         )
         if priority_sort:
-            self.selected_cids.sort(key= lambda x: capacity[x], reverse = False)
+            self.selected_cids.sort(key= lambda x: capacity[x], reverse = True)
             self.unselected_cids.sort(key= lambda x: capacity[x], reverse = True)
         jobs={}
         mappings={}

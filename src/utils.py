@@ -8,21 +8,18 @@ from secrets import token_hex
 from typing import Dict, Optional, Union, Callable
 import importlib.util
 
-import random
-import torch
-
 import matplotlib.pyplot as plt
 import numpy as np
 from flwr.server.history import History
 from src import PATH_src, PORT_ROOT
-from src.Communication import Communicator
-
+'''
 def set_random_seed(seed: int):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed) # Set seed for CUDA if available
+'''
 
 def server_address(ip:str,host:int)->str:
     return ''.join([ip,":",str(host)])
@@ -149,6 +146,7 @@ def get_ports(num_clients:int,
               )->Dict[str,int]:
     return {str(cid): ( PORT_ROOT + 5 * cid) for cid in range(num_clients)}
 
+"""
 def get_communicators(num_clients:int,
                       ip_address:str,
                       ports:Dict[str, int],
@@ -162,17 +160,5 @@ def get_communicators(num_clients:int,
         )
     return communicators
 
-class BasicAgent:
-    def __init__(self, n1: int):
-        '''
-        Simple Agent that, given a state,
-         it chops the network at a fixed point.
-        :param n1:
-        '''
-        self.n1 = n1
+"""
 
-    def __repr__(self):
-        return "BasicAgent"
-
-    def exploit(self, state=None)->int:
-        return self.n1

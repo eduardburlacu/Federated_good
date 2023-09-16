@@ -11,6 +11,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 
+from src import SEED
 from src.Dataset.dataset_preparation_federated import load_data
 from src.models import test, train
 from src.Communication import Communicator
@@ -18,7 +19,10 @@ from src.straggler_schedule import get_straggler_schedule
 from src.split_learn import split_model
 from src.utils import timeit
 
-
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(SEED) # Set seed for CUDA if available
 
 class FlowerClient(
     fl.client.NumPyClient,
@@ -92,8 +96,6 @@ class FlowerClient(
 
     def get_properties(self, config: Dict[str, Scalar]) -> Dict[str, Scalar]:
         #Update capacity
-        self.capacity = max(self.mbps / self.computation_frac, 0.0)
-
         properties = {
             "port": self.index,
             "mbps": self.mbps,
@@ -113,28 +115,8 @@ class FlowerClient(
         state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
         self.net.load_state_dict(state_dict, strict=True)
 
-    def get_speed(self, model_size:float,emitter=True):
-        """
-        Computes the transfer rate (MBPS), transmission time back and forth
-        """
-        if self.connected and self.net:
-            if emitter:
-                start = time.time()
-                msg = [
-                    'MSG_TEST_NETWORK',
-                    self.net.cpu().state_dict()
-                ]
-                self.send_msg(sock=self.to_socket(),msg=msg,)
-                msg = self.recv_msg(sock=self.to_socket())
-                end = time.time()
-                self.mbps = (2 * model_size * 8) / (end - start), end-start  # Mbit/s and s metrics for speed
-            else:
-                #wait for input
-                msg = self.recv_msg(sock=self.to_socket())
-                #send back
-                self.send_msg(sock=self.to_socket(),msg=msg,)
-        else:
-            self.mbps = 0.
+    def update_capacity(self):
+        self.capacity = self.mbps / self.computation_frac
 
     def split_train(
             self,
@@ -160,35 +142,41 @@ class FlowerClient(
             )
             for e in range(num_epochs):
                 for batch_idx, (features, targets) in enumerate(self.trainloader):
-                    if batch_idx<= int(frac * len(self.trainloader)):
-                        features, targets = features.to(self.device), targets.to(self.device)
-                        proximal_term = 0.0
-                        optimizer.zero_grad()
-                        for local_weights, global_weights in zip(self.net.parameters(), global_parms):
-                            proximal_term += (local_weights - global_weights).norm(2)
-                        smashed_activations = self.net(features)
-                        # Transfer data to other device
-                        msg = ["MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER",
-                               split_layer,
-                               proximal_term,
-                               smashed_activations.cpu(),
-                               targets.cpu()
-                               ]
-                        self.send_msg(
-                            sock=self.to_socket(),
-                            msg=msg,
-                        )
-                        # Wait for backpropagation if split learning
-                        gradients = self.recv_msg(self.to_socket())[1]
-                        if split_layer > 0:
-                            gradients = gradients.to(self.device)
-                            smashed_activations.backward(gradients)
-                        msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER',
-                               self.cid,
-                               self.get_parameters({}),
-                               len(self.trainloader),
-                               ]
-                        self.send_msg(sock=self.to_socket(), msg=msg)
+                    dt = time.time()
+                    features, targets = features.to(self.device), targets.to(self.device)
+                    proximal_term = 0.0
+                    optimizer.zero_grad()
+                    for local_weights, global_weights in zip(self.net.parameters(), global_parms):
+                        proximal_term += (local_weights - global_weights).norm(2)
+                    smashed_activations = self.net(features)
+                    # Transfer data to other device
+                    msg = ["MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER",
+                           split_layer,
+                           proximal_term,
+                           smashed_activations.cpu(),
+                           targets.cpu()
+                           ]
+
+                    dt = (time.time()-dt) * (1/frac - 1)
+                    #Communicator is separated
+                    self.send_msg(
+                        sock=self.to_socket(),
+                        msg=msg,
+                    )
+                    time.sleep(dt)
+                    self.update_capacity()
+                    # Wait for backpropagation if split learning
+                    gradients = self.recv_msg(self.to_socket())[1]
+                    if split_layer > 0:
+                        gradients = gradients.to(self.device)
+                        smashed_activations.backward(gradients)
+                    msg = ['MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER',
+                           self.cid,
+                           self.get_parameters({}),
+                           len(self.trainloader),
+                           ]
+                    self.send_msg(sock=self.to_socket(), msg=msg)
+                    self.update_capacity()
 
         else: #Direct offload
             # Transfer data to other device
@@ -200,6 +188,7 @@ class FlowerClient(
                 sock=self.to_socket(),
                 msg=msg,
             )
+            self.update_capacity()
 
     def split_follower(self,
                        proximal_mu:float,
@@ -216,11 +205,13 @@ class FlowerClient(
             cid, ante_parameters ,num_examples = msg[1:]
             return ([*ante_parameters, *self.get_parameters({})],
                     num_examples,
-                    { "is_straggler": False,
+                    { "is_straggler": self.computation_frac != 1.0,
                       "cid": cid, }
                     )
+
         elif len(msg)==3:
             trainloader, cid = msg[1:]
+            dt = time.time()
             train(
                 self.net,
                 trainloader= trainloader,
@@ -230,6 +221,8 @@ class FlowerClient(
                 proximal_mu=proximal_mu,
                 computation_frac=frac,
             )
+            dt = time.time() - dt
+            time.sleep(dt)
             return self.get_parameters({}), len(trainloader), {
                 "is_straggler": self.computation_frac != 1.0,
                 "cid": cid,
@@ -238,6 +231,7 @@ class FlowerClient(
         else:
             criterion = nn.CrossEntropyLoss()
             split_layer, proximal_term_straggler, smashed_activations, targets = msg[1:]
+            dt = time.time()
             # Split training
             if self.net:
                 self.net = split_model(net=self.net, n1=split_layer)[1]
@@ -262,13 +256,15 @@ class FlowerClient(
             loss = criterion(output, targets) + proximal_mu * proximal_term /2
             loss.backward()
             optimizer.step()
+            dt = (time.time()-dt) * (1/frac - 1)
             # Send gradients to client
             msg = [
                 'MSG_SERVER_GRADIENTS_SERVER_TO_CLIENT',
                 smashed_activations.grad
             ]
             self.send_msg(sock=self.to_socket(), msg=msg)
-
+            time.sleep(dt)
+            self.update_capacity()
             return None
 
     @timeit
@@ -284,7 +280,7 @@ class FlowerClient(
         ):
             #num_epochs = np.random.randint(1, self.num_epochs)
             #self.computation_frac = num_epochs / self.num_epochs
-
+            print(config)
             if "drop_client" in config:
                 if config["drop_client"]:
                     # return without doing any training.
@@ -313,8 +309,8 @@ class FlowerClient(
 
             result = None
             while result is None:
-                result = self.split_follower(proximal_mu=config["proximal_mu"])
-            print(f'Follower {self.cid} has finished training round')
+                result = self.split_follower(proximal_mu=config["proximal_mu"], frac=self.computation_frac)
+            print(f'Follower {self.cid}, flops {self.computation_frac} has finished training round')
 
             return result
 
@@ -330,7 +326,7 @@ class FlowerClient(
                     proximal_mu=config["proximal_mu"],
                     computation_frac=self.computation_frac
                 )
-                print(f'Regular client {self.cid} has finished training')
+                print(f'Regular client {self.cid}, flops {self.computation_frac} has finished training')
                 return self.get_parameters({}), len(self.trainloader), {
                     "is_straggler": self.computation_frac!=1.0,
                     "cid": self.cid,
@@ -355,9 +351,10 @@ class FlowerClient(
                 self.split_train(
                     split_layer=config["split_layer"],
                     num_epochs=self.num_epochs,
+                    frac=self.computation_frac
                 )
 
-                print(f'Straggler {self.cid} has finished training round')
+                print(f'Straggler {self.cid}, flops {self.computation_frac} has finished training round')
                 return ([], len(self.trainloader), {
                     "is_straggler": True,
                     "cid": self.cid,
@@ -386,7 +383,10 @@ def gen_client_fn(
     model: DictConfig,
     ip_address:Optional[str],
     ports:Optional[Dict[str,int]],
-) -> Callable[[str], FlowerClient]:  # pylint: disable=too-many-arguments
+) -> Tuple[
+     Callable[[str], FlowerClient],
+    Dict[str, bool]
+]:  # pylint: disable=too-many-arguments
     """Generates the client function that creates the Flower Clients.
 
     Parameters
@@ -427,6 +427,7 @@ def gen_client_fn(
         stragglers_frac=stragglers_frac,
         type="constant",
     )
+    init_stragglers = {str(cid): bool(stragglers_mat[cid,0]) for cid in range(num_clients)}
 
     def client_fn(cid: str) -> FlowerClient:
         """Create a Flower client representing a single organization."""
@@ -451,8 +452,7 @@ def gen_client_fn(
             index= index
         )
 
-    return client_fn
-
+    return client_fn, init_stragglers
 
 class FedFlowerClient(
     FlowerClient
@@ -490,6 +490,7 @@ class FedFlowerClient(
     ) -> Tuple[NDArrays, int, Dict]:
         """Implements distributed fit function for a given client."""
         self.set_parameters(parameters)
+
 
         # At each round check if the client is a straggler,
         # if so, train less epochs (to simulate partial work)

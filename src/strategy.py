@@ -147,7 +147,6 @@ class FedProxOffload(FedAvg):
             if self.on_fit_config_fn is not None: # Custom fit config function provided
                 config = self.on_fit_config_fn(server_round)
 
-            config["curr_round"]= server_round
             config["proximal_mu"] = self.proximal_mu
             config["split_layer"] = self.model_num_layers - 1
 
@@ -199,7 +198,6 @@ class FedProxOffload(FedAvg):
             fit_metrics = [(res.num_examples, res.metrics) for _, res in results]
             metrics_aggregated = self.fit_metrics_aggregation_fn(fit_metrics)
             print(metrics_aggregated)
-            #self.time_buffer = metrics_aggregated["train_time"]
         elif server_round == 1:  # Only log this warning once
             log(WARNING, "No fit_metrics_aggregation_fn provided")
 

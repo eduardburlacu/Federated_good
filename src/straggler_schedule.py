@@ -1,16 +1,8 @@
 from typing import Tuple, List, Dict, Optional
 import numpy as np
 from numpy.typing import NDArray
-
-
-def capacity_distribution(
-        num_clients:int,
-):
-    return {
-        str(cid):1
-        for cid in range(num_clients)
-    }
-
+from src import SEED
+np.random.seed(SEED)
 
 def get_straggler_schedule(
         num_clients:int,
@@ -60,4 +52,13 @@ def get_computation_frac( num_clients:int, beta=None )->NDArray:
             p=flops_probs,
         )
     return computation_frac
+    
+    
+    def capacity_distribution(
+        num_clients:int,
+) -> Dict[str, float]:
+    return {
+        str(cid):1
+        for cid in range(num_clients)
+    }
 """

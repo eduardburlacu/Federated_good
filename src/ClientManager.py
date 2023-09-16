@@ -1,16 +1,17 @@
 from typing import Dict, List, Optional, Tuple, Union
 from logging import INFO
-
 import random
+
 from flwr.common.typing import GetPropertiesIns
 from flwr.common.logger import log
 from flwr.server.client_manager import SimpleClientManager
 from flwr.server.criterion import Criterion
 from flwr.server.client_proxy import ClientProxy
 
+from src import SEED
 from src.Clustering import Scheduler
 
-
+random.seed(SEED)
 class OffloadClientManager(SimpleClientManager):
     def __init__(self, schedule:str="round_robin"):
         super(OffloadClientManager, self).__init__()

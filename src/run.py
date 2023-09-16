@@ -12,21 +12,19 @@ sys.path.insert(0, src_path)
 
 from src import PATH_src, DEFAULT_SERVER_ADDRESS
 from src import client, server
-from src.ClientManager import OffloadClientManager
 from src.Dataset import dataset
 from src.utils import get_ports
-from src.utils import save_results_as_pickle,plot_metric_from_history,set_random_seed
+from src.utils import save_results_as_pickle,plot_metric_from_history
 
 @hydra.main(config_path=PATH_src["conf"], config_name="config_offload", version_base=None)
 def main(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
-    set_random_seed(cfg.seed)
 
     # Instantiate strategy requirements according to config
     ports = get_ports(cfg.num_clients)
     agent = instantiate(cfg.agent)
 
-    init_stragglers = {str(cid): round(cid / cfg.num_clients) for cid in range(cfg.num_clients)}
+    #init_stragglers = {str(cid): round(cid / cfg.num_clients) for cid in range(cfg.num_clients)}
     base_capacity = 1 / cfg.num_clients
     init_capacities = {str(cid): base_capacity for cid in range(cfg.num_clients)}
     del base_capacity
@@ -70,19 +68,11 @@ def main(cfg: DictConfig) -> None:
 
     # get function that will be executed by the strategy's evaluate() method
     evaluate_fn = server.gen_evaluate_fn(testloader, device=device, model=cfg.model)
-
-    #Instantiate strategy
-    strategy = instantiate(
-        cfg.strategy,
-        evaluate_fn=evaluate_fn,
-        agent=agent,
-        init_stragglers=init_stragglers,
-        init_capacities=init_capacities,
-        ports=ports,
-    )
+    # get function that will be executed by the strategy's configure_fit() method
+    fit_config_fn = server.get_on_fit_config(cfg.fit_config)
 
     # prepare function that will be used to spawn each client
-    client_fn = client.gen_client_fn(
+    client_fn, init_stragglers = client.gen_client_fn(
         num_clients=cfg.num_clients,
         num_rounds=cfg.num_rounds,
         num_epochs=cfg.num_epochs,
@@ -96,6 +86,19 @@ def main(cfg: DictConfig) -> None:
         ports=ports,
     )
 
+    #Instantiate strategy
+    strategy = instantiate(
+        cfg.strategy,
+        min_fit_clients=cfg.clients_per_round,
+        min_available_clients=2*cfg.clients_per_round,
+        evaluate_fn=evaluate_fn,
+        on_fit_config_fn=fit_config_fn,
+        agent=agent,
+        init_stragglers=init_stragglers,
+        init_capacities=init_capacities,
+        ports=ports,
+    )
+
     # Start simulation
     history = fl.simulation.start_simulation(
         client_fn=client_fn,
@@ -106,7 +109,7 @@ def main(cfg: DictConfig) -> None:
             "num_gpus": cfg.client_resources.num_gpus,
         },
         strategy=strategy,
-        client_manager=OffloadClientManager()
+        client_manager=instantiate(cfg.client_manager)
     )
 
     # Experiment completed. Now we save the results and

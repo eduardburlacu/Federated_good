@@ -1,14 +1,17 @@
 from typing import Tuple
-
+import torch
 import torch.nn as nn
 import pickle, struct, socket
 import collections
-import numpy as np
 
 import logging
+from src import SEED
+
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
+torch.manual_seed(SEED)
+if torch.cuda.is_available():
+	torch.cuda.manual_seed_all(SEED)  # Set seed for CUDA if available
 
 def send_msg(sock, msg):
 	msg_pickle = pickle.dumps(msg)
@@ -71,6 +74,3 @@ def concat_weights(weights,cweights,sweights):
 		concat_dict[keys[i + len(ckeys)]] = sweights[skeys[i]]
 
 	return concat_dict
-
-
-

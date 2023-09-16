@@ -1,10 +1,9 @@
 from collections import OrderedDict
 from typing import Callable, Dict, Optional, Tuple, List
 import torch
-from flwr.common import Metrics
 from flwr.common.typing import NDArrays, Scalar, Metrics
 from hydra.utils import instantiate
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 
 from src.models import test
@@ -29,6 +28,28 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
     # Aggregate and return custom metric (weighted average)
     return {"accuracy": int(sum(accuracies)) / int(sum(examples))}
 
+def fit_metrics_aggregation_fn( metrics:List[Tuple[int,Metrics]] ) -> Metrics:
+    longest_train_time = 0.0
+
+    for num_examples, m in metrics:
+        longest_train_time = max(
+            longest_train_time,
+            m["time"]
+        )
+
+    return {"train_time": longest_train_time}
+
+
+def get_on_fit_config(conf):
+    def fit_config_fn(server_round: int):
+        # resolve and convert to python dict
+        fit_config: Dict[str, Union[bool, float]] = OmegaConf.to_container(  # type: ignore
+            conf, resolve=True
+        )
+        fit_config["curr_round"] = server_round  # add round info
+        return fit_config
+    return fit_config_fn
+
 def gen_evaluate_fn(
     testloader: DataLoader,
     device: torch.device,
@@ -44,6 +65,8 @@ def gen_evaluate_fn(
         The dataloader to test the model with.
     device : torch.device
         The device to test the model on.
+    model : DictConfig
+        The model class to be used.
 
     Returns
     -------
@@ -67,15 +90,3 @@ def gen_evaluate_fn(
         return loss, {"accuracy": accuracy}
 
     return evaluate
-
-
-def fit_metrics_aggregation_fn( metrics:List[Tuple[int,Metrics]] ) -> Metrics:
-    longest_train_time = 0.0
-
-    for num_examples, m in metrics:
-        longest_train_time = max(
-            longest_train_time,
-            m["time"]
-        )
-
-    return {"train_time": longest_train_time}

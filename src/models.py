@@ -7,6 +7,10 @@ import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 from torch.utils.data import DataLoader
 
+from src import SEED
+torch.manual_seed(SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(SEED)  # Set seed for CUDA if available
 
 class Net(nn.Module):
     """Convolutional Neural Network architecture.
@@ -77,11 +81,15 @@ class LogisticRegression(nn.Module):
         output_tensor = self.fc(torch.flatten(input_tensor, 1))
         return output_tensor
 
+'''
 def straggler_delayed(func:Callable):
     def wrapper(*args,**kwargs):
         dt = time.time()
         result = func(*args,**kwargs)
-        dt =( time.time() - dt ) *(1-kwargs["computation_frac"])
+        dt =( time.time() - dt ) * (1.0/kwargs["computation_frac"] - 1.0)
+        return result
+    return wrapper
+'''
 
 
 def train(  # pylint: disable=too-many-arguments
@@ -120,7 +128,7 @@ def train(  # pylint: disable=too-many-arguments
         net = _train_one_epoch(
             net, global_params, trainloader, device, criterion, optimizer, proximal_mu
         )
-    dt = (time.time() - dt) *( 1. - computation_frac)
+    dt = (time.time() - dt) *( 1.0/computation_frac - 1.0)
     time.sleep(dt)
 
 
