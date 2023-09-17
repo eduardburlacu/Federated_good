@@ -1,6 +1,5 @@
 import time
-from typing import List, Tuple, Callable
-
+from typing import List, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,9 +7,11 @@ from torch.nn.parameter import Parameter
 from torch.utils.data import DataLoader
 
 from src import SEED
+
 torch.manual_seed(SEED)
 if torch.cuda.is_available():
     torch.cuda.manual_seed_all(SEED)  # Set seed for CUDA if available
+torch.use_deterministic_algorithms(True)
 
 class Net(nn.Module):
     """Convolutional Neural Network architecture.
@@ -34,7 +35,7 @@ class Net(nn.Module):
 
         Parameters
         ----------
-        x : torch.Tensor
+        input_tensor : torch.Tensor
             Input Tensor that will pass through the network
 
         Returns
@@ -70,7 +71,7 @@ class LogisticRegression(nn.Module):
 
         Parameters
         ----------
-        x : torch.Tensor
+        input_tensor : torch.Tensor
             Input Tensor that will pass through the network
 
         Returns
@@ -89,6 +90,24 @@ def straggler_delayed(func:Callable):
         dt =( time.time() - dt ) * (1.0/kwargs["computation_frac"] - 1.0)
         return result
     return wrapper
+    
+class CNN_MNIST(torch.nn.Module):
+    def __init__(self):
+        super(CNN_MNIST, self).__init__()
+        self.conv1 = nn.Conv2d(1, 32, 5, padding='same')             #  32*28*28
+        self.pool1 = nn.MaxPool2d(kernel_size=(2,2), padding='same') #  32*14*14
+        self.conv2 = nn.Conv2d(32, 64, 5, padding='same')            #  64*14*14
+        self.pool2 = nn.MaxPool2d(kernel_size=(2,2), padding='same') #  64*7*7
+        self.fc1 = nn.Linear(64* 7* 7, 512)
+        self.fc2 = nn.Linear(512, 10)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.pool1(F.relu(self.conv1(x)))
+        x = self.pool2(F.relu(self.conv2(x)))
+        x = torch.flatten(x, 1)
+        x = F.relu(self.fc1(x))
+        x = F.softmax(self.fc2(x), dim=1)
+        return x
 '''
 
 
@@ -138,7 +157,7 @@ def _train_one_epoch(  # pylint: disable=too-many-arguments
     trainloader: DataLoader,
     device: torch.device,
     criterion: torch.nn.CrossEntropyLoss,
-    optimizer: torch.optim.Adam,
+    optimizer: torch.optim.SGD,
     proximal_mu: float,
 ) -> nn.Module:
     """Train for one epoch.
@@ -213,23 +232,6 @@ def test(
     accuracy = correct / total
     return loss, accuracy
 
-class CNN_MNIST(torch.nn.Module):
-    def __init__(self, *args, **kwargs):
-        super(CNN_MNIST, self).__init__(*args, **kwargs)
-        self.conv1 = nn.Conv2d(1, 32, 5, padding='same')             #  32*28*28
-        self.pool1 = nn.MaxPool2d(kernel_size=(2,2), padding='same') #  32*14*14
-        self.conv2 = nn.Conv2d(32, 64, 5, padding='same')            #  64*14*14
-        self.pool2 = nn.MaxPool2d(kernel_size=(2,2), padding='same') #  64*7*7
-        self.fc1 = nn.Linear(64* 7* 7, 512)
-        self.fc2 = nn.Linear(512, 10)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.pool1(F.relu(self.conv1(x)))
-        x = self.pool2(F.relu(self.conv2(x)))
-        x = torch.flatten(x, 1)
-        x = F.relu(self.fc1(x))
-        x = F.softmax(self.fc2(x), dim=1)
-        return x
 
 class CNN_CIFAR(torch.nn.Module):
     def __init__(self):

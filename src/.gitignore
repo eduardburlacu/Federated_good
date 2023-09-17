@@ -1,5 +1,8 @@
 ../FedProx/
 ../outputs/
+../outputs_paper/
+
 playground.ipynb
 ../multirun/
 ../Dataset/data/
+../poetry.lock

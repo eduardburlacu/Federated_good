@@ -2,7 +2,7 @@ from typing import Tuple, List, Dict, Optional
 import numpy as np
 from numpy.typing import NDArray
 from src import SEED
-
+np.random.seed(SEED)
 
 def get_straggler_schedule(
         num_clients:int,

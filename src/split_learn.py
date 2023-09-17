@@ -3,15 +3,16 @@ import torch
 import torch.nn as nn
 import pickle, struct, socket
 import collections
-
 import logging
 from src import SEED
 
-logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 torch.manual_seed(SEED)
 if torch.cuda.is_available():
 	torch.cuda.manual_seed_all(SEED)  # Set seed for CUDA if available
+torch.use_deterministic_algorithms(True)
+
+logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def send_msg(sock, msg):
 	msg_pickle = pickle.dumps(msg)

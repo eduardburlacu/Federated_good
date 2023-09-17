@@ -1,5 +1,6 @@
 import os
 
+TIMEOUT = 12
 DEFAULT_SERVER_ADDRESS = '127.0.0.1' #For socket bind
 DEFAULT_GRPC_ADDRESS = "[::]:8080"
 PORT_ROOT = 20000

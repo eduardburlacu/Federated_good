@@ -1,6 +1,8 @@
 import os
 import sys
+from logging import INFO
 import flwr as fl
+from flwr.common.logger import log
 import hydra
 from hydra.core.hydra_config import HydraConfig
 from hydra.utils import instantiate
@@ -10,7 +12,7 @@ from omegaconf import DictConfig, OmegaConf
 src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 sys.path.insert(0, src_path)
 
-from src import PATH_src, DEFAULT_SERVER_ADDRESS
+from src import PATH_src, DEFAULT_SERVER_ADDRESS, TIMEOUT
 from src import client, server
 from src.Dataset import dataset
 from src.utils import get_ports
@@ -125,7 +127,7 @@ def main(cfg: DictConfig) -> None:
     history = fl.simulation.start_simulation(
         client_fn=client_fn,
         num_clients=cfg.num_clients,
-        config=fl.server.ServerConfig(num_rounds=cfg.num_rounds),
+        config=fl.server.ServerConfig(num_rounds=cfg.num_rounds, round_timeout=TIMEOUT),
         client_resources={
             "num_cpus": cfg.client_resources.num_cpus,
             "num_gpus": cfg.client_resources.num_gpus,
@@ -134,18 +136,26 @@ def main(cfg: DictConfig) -> None:
         client_manager=instantiate(cfg.client_manager)
     )
 
+    TOTAL_TRAIN_TIME = 0.
+    AVG_STRAGGLERS_DROP = 0.
+    for step in range(cfg.num_rounds):
+        TOTAL_TRAIN_TIME += strategy.extra_resuts["train_time"][step][1]
+        AVG_STRAGGLERS_DROP += strategy.extra_resuts["frac_failures"][step][1]
+    AVG_STRAGGLERS_DROP /= cfg.num_rounds
     # Experiment completed. Now we save the results and
     # generate plots using the `history`
     print("................")
-    print(history)
-
+    log(INFO,history)
+    log(INFO,f"Decentralised metrics: {strategy.extra_resuts}")
+    log(INFO,f"TOTAL_TRAIN_TIME is {TOTAL_TRAIN_TIME}")
+    log(INFO,f"AVG_STRAGGLERS_DROP is {AVG_STRAGGLERS_DROP} ")
     # Hydra automatically creates an output directory
     # Let's retrieve it and save some results there
     save_path = HydraConfig.get().runtime.output_dir
 
     # save results as a Python pickle using a file_path
     # the directory created by Hydra for each run
-    save_results_as_pickle(history, file_path=save_path, extra_results={})
+    save_results_as_pickle(history, file_path=save_path, extra_results=strategy.extra_resuts)
 
     # plot results and include them in the readme
     strategy_name = strategy.__class__.__name__
