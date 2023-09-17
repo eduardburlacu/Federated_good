@@ -99,9 +99,7 @@ class FlowerClient(
         #Update capacity
         properties = {
             "port": self.index,
-            "mbps": self.mbps,
             "time": self.time,
-            "straggler": self.straggler_schedule[int(config["curr_round"])],
             "capacity":self.capacity
         }
         return properties
@@ -155,7 +153,8 @@ class FlowerClient(
                            split_layer,
                            proximal_term,
                            smashed_activations.cpu(),
-                           targets.cpu()
+                           targets.cpu(),
+                           ""
                            ]
 
                     dt = (time.time()-dt) * (1/frac - 1)
@@ -175,6 +174,7 @@ class FlowerClient(
                            self.cid,
                            self.get_parameters({}),
                            len(self.trainloader),
+                           self.capacity
                            ]
                     self.send_msg(sock=self.to_socket(), msg=msg)
                     self.update_capacity()
@@ -183,7 +183,8 @@ class FlowerClient(
             # Transfer data to other device
             msg = ["MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER",
                    self.trainloader,
-                   self.cid
+                   self.cid,
+                   self.capacity
                    ]
             self.send_msg(
                 sock=self.to_socket(),
@@ -202,16 +203,18 @@ class FlowerClient(
             expect_msg_type='MSG_LOCAL_ACTIVATIONS_CLIENT_TO_SERVER'
         )
 
-        if len(msg)==4:
-            cid, ante_parameters ,num_examples = msg[1:]
+        if len(msg)==5:
+            cid, ante_parameters ,num_examples, capacity = msg[1:]
             return ([*ante_parameters, *self.get_parameters({})],
                     num_examples,
                     { "is_straggler": self.computation_frac != 1.0,
-                      "cid": cid, }
+                      "cid": cid,
+                      "capacity":capacity,
+                      }
                     )
 
-        elif len(msg)==3:
-            trainloader, cid = msg[1:]
+        elif len(msg)==4:
+            trainloader, cid, capacity = msg[1:]
             dt = time.time()
             train(
                 self.net,
@@ -227,11 +230,12 @@ class FlowerClient(
             return self.get_parameters({}), len(trainloader), {
                 "is_straggler": self.computation_frac != 1.0,
                 "cid": cid,
+                "capacity":capacity
             }
 
         else:
             criterion = nn.CrossEntropyLoss()
-            split_layer, proximal_term_straggler, smashed_activations, targets = msg[1:]
+            split_layer, proximal_term_straggler, smashed_activations, targets, _ = msg[1:]
             dt = time.time()
             # Split training
             if self.net:
@@ -287,7 +291,8 @@ class FlowerClient(
                         len(self.trainloader),
                         {"is_straggler": True,
                          "cid":self.cid,
-                         "next": self.straggler_schedule[min(config["curr_round"], len(self.straggler_schedule)-1)]
+                         "next": self.straggler_schedule[min(config["curr_round"], len(self.straggler_schedule)-1)],
+                         "capacity": self.capacity
                          }
                     )
 
@@ -328,7 +333,8 @@ class FlowerClient(
                     "next": self.straggler_schedule[min(
                         config["curr_round"],
                         len(self.straggler_schedule)-1
-                    )]
+                    )],
+                    "capacity":self.capacity
                 }
 
             else:  # Offload a part of the training
@@ -353,7 +359,8 @@ class FlowerClient(
                 return ([], len(self.trainloader), {
                     "is_straggler": True,
                     "cid": self.cid,
-                    "next": self.straggler_schedule[min(config["curr_round"], len(self.straggler_schedule)-1)]
+                    "next": self.straggler_schedule[min(config["curr_round"], len(self.straggler_schedule)-1)],
+                    "capacity": self.capacity
                 })
 
 

@@ -40,8 +40,6 @@ client_manager:
   _target_: src.ClientManager.OffloadClientManager
   schedule: round_robin
 
-
-
 fit_config:
   drop_client: false # with FedProx, clients shouldn't be dropped even if they are stragglers
 

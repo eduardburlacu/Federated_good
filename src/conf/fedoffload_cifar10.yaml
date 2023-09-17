@@ -34,10 +34,6 @@ client_manager:
   _target_: src.ClientManager.OffloadClientManager
   schedule: round_robin
 
-#agent:
-#  _target_: src.Agent.basic.BasicAgent
-#  n1: 0
-
 fit_config:
   drop_client: false # with FedProx, clients shouldn't be dropped even if they are stragglers
 
@@ -46,9 +42,7 @@ strategy:
   model_num_layers: 7
   fraction_fit: 0.00001 # because we want the number of clients to sample on each round to be solely defined by min_fit_clients
   fraction_evaluate: 0.0
-  #min_fit_clients: 10
   min_evaluate_clients: 0
-  #min_available_clients: 20
   fit_metrics_aggregation_fn:
     _target_: src.server.fit_metrics_aggregation_fn
     _partial_: true # we don't want this function to be evaluated when instantiating the strategy, we treat it as a partial and evaluate it when the strategy actuallly calls the function (in aggregate_fit())

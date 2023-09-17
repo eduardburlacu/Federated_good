@@ -26,9 +26,7 @@ def main(cfg: DictConfig) -> float:
     ports = get_ports(cfg.num_clients)
 
     #init_stragglers = {str(cid): round(cid / cfg.num_clients) for cid in range(cfg.num_clients)}
-    base_capacity = 1 / cfg.num_clients
-    init_capacities = {str(cid): base_capacity for cid in range(cfg.num_clients)}
-    del base_capacity
+    init_capacities = {str(cid): 0.0 for cid in range(cfg.num_clients)}
 
     # Set server's device
     device = cfg.server_device

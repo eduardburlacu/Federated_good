@@ -112,6 +112,7 @@ class FedProxOffload(FedAvg):
         self.capacities = init_capacities
         self.ports = ports
         self.extra_resuts={}
+        self.num_stragglers:int = 0
 
     def __repr__(self) -> str:
         rep = f"FedProx(offload=True, accept_failures={self.accept_failures})"
@@ -140,6 +141,7 @@ class FedProxOffload(FedAvg):
             capacities=self.capacities,
             ports = self.ports
         )
+        self.num_stragglers = len(ports.keys())
         print(f"CLIENTS CONVOCATED ARE: {clients_cid} AND JOBS ARE: {jobs} AND PORTS ARE {ports}")
         result=[]
         for cid, client in zip(clients_cid, clients):
@@ -156,7 +158,6 @@ class FedProxOffload(FedAvg):
             elif cid in ports: #straggler configuration
                 config["port"] = ports[cid]
                 config["split_layer"] = self.agent.exploit()
-                #del res
 
             result.append(
                 (client, FitIns(parameters, config))
@@ -181,10 +182,11 @@ class FedProxOffload(FedAvg):
         # Convert results
         weights_results = []
         # Measure what % has been dropped off
-        frac_failures = len(failures)/(len(results)+len(failures))
+        frac_failures = len(results)
 
         for client_prox,fit_res in results:
             print(f"Time, straggler={fit_res.metrics['is_straggler']}: {fit_res.metrics['time']}")
+            #self.capacities[fit_res.metrics["cid"]] = client_prox.get_properties()
             if "next" in fit_res.metrics:
                 # Update record of stragglers at the moment
                 self.stragglers[fit_res.metrics["cid"]] = bool(fit_res.metrics["next"])
@@ -192,11 +194,10 @@ class FedProxOffload(FedAvg):
             weight = parameters_to_ndarrays(fit_res.parameters)
             if len(weight)>0: #Filter stragglers aided by followers
                 weights_results.append((weight, fit_res.num_examples))
+                frac_failures -= 1
 
         parameters_aggregated = ndarrays_to_parameters(aggregate(weights_results))
-
-        # Measure what % has been dropped off
-        frac_failures = len(failures)/(len(results)+len(failures))
+        frac_failures = frac_failures/(len(results)+len(failures)- self.num_stragglers)
 
         # Aggregate custom metrics if aggregation fn was provided
         metrics_aggregated = {}
