@@ -204,6 +204,8 @@ class FedProxOffload(FedAvg):
             fit_metrics = [(res.num_examples, res.metrics) for _, res in results]
             metrics_aggregated = self.fit_metrics_aggregation_fn(fit_metrics)
             metrics_aggregated["frac_failures"] = frac_failures
+            if frac_failures > 0:
+                metrics_aggregated["train_time"] = TIMEOUT
             print(metrics_aggregated)
             # Cache results before simulation end
             for key, value in metrics_aggregated.items():

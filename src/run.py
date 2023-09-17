@@ -19,7 +19,7 @@ from src.utils import get_ports
 from src.utils import save_results_as_pickle,plot_metric_from_history
 
 @hydra.main(config_path=PATH_src["conf"], config_name="config_offload", version_base=None)
-def main(cfg: DictConfig) -> None:
+def main(cfg: DictConfig) -> float:
     print(OmegaConf.to_yaml(cfg))
 
     # Instantiate strategy requirements according to config
@@ -177,6 +177,7 @@ def main(cfg: DictConfig) -> None:
         save_path,
         (file_suffix),
     )
+    return TOTAL_TRAIN_TIME
 
 if __name__=='__main__':
     main()
