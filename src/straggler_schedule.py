@@ -32,7 +32,7 @@ def get_straggler_schedule(
         for idx in range(num_clients):
             if target_clients[idx] == 1:
                 schedule[idx,:] = np.ones(num_rounds)
-                computation_frac[str(idx)] = np.random.beta(2,5) # (1, 1)
+                computation_frac[str(idx)] = np.random.beta(1,1) # (2,5)
             else:
                 computation_frac[str(idx)] = 1.0
 
