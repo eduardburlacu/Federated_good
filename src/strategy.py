@@ -1,6 +1,6 @@
 from typing import List, Tuple, Dict, Union, Callable, Optional
 from logging import WARNING
-
+from math import ceil
 from flwr.common.logger import log
 from flwr.common import (
     #EvaluateIns,
@@ -80,7 +80,9 @@ class FedProxOffload(FedAvg):
         proximal_mu: float= 0.,
         agent=None,
         init_stragglers: Dict[str, int]=None,
-        init_capacities: Dict[str,bool]=None,
+        init_computation_fracs: Dict[str,float],
+        datasizes: Dict[str,int],
+        batch_size:int,
         ports: Dict[str, int],
     ) -> None:
         super().__init__()
@@ -109,7 +111,10 @@ class FedProxOffload(FedAvg):
         self.proximal_mu = proximal_mu
         self.agent = agent
         self.stragglers = init_stragglers
-        self.capacities = init_capacities
+        self.datasizes=datasizes
+        self.capacities = {}
+        for cid in self.datasizes:
+            self.capacities[cid] = 1. * ceil(self.datasizes[cid]/batch_size) /init_computation_fracs[cid]
         self.ports = ports
         self.extra_resuts={}
         self.num_stragglers:int = 0
@@ -139,6 +144,7 @@ class FedProxOffload(FedAvg):
             with_followers= True,
             stragglers=self.stragglers,
             capacities=self.capacities,
+            datasizes=self.datasizes,
             ports = self.ports
         )
         self.num_stragglers = len(ports.keys())
@@ -182,11 +188,12 @@ class FedProxOffload(FedAvg):
         # Convert results
         weights_results = []
         # Measure what % has been dropped off
-        frac_failures = len(results)
+        frac_failures = len(failures) / (len(results) + len(failures))
 
         for client_prox,fit_res in results:
             print(f"Time, straggler={fit_res.metrics['is_straggler']}: {fit_res.metrics['time']}")
-            #self.capacities[fit_res.metrics["cid"]] = client_prox.get_properties()
+            print(f"Capacity:{fit_res.metrics['capacity']}")
+            self.capacities[fit_res.metrics["cid"]] = fit_res.metrics['capacity']
             if "next" in fit_res.metrics:
                 # Update record of stragglers at the moment
                 self.stragglers[fit_res.metrics["cid"]] = bool(fit_res.metrics["next"])
@@ -194,10 +201,9 @@ class FedProxOffload(FedAvg):
             weight = parameters_to_ndarrays(fit_res.parameters)
             if len(weight)>0: #Filter stragglers aided by followers
                 weights_results.append((weight, fit_res.num_examples))
-                frac_failures -= 1
+
 
         parameters_aggregated = ndarrays_to_parameters(aggregate(weights_results))
-        frac_failures = frac_failures/(len(results)+len(failures)- self.num_stragglers)
 
         # Aggregate custom metrics if aggregation fn was provided
         metrics_aggregated = {}
@@ -300,6 +306,7 @@ class FedProxNonOffload(FedProx):
         # Convert results
         weights_results = []
         for client_prox,fit_res in results:
+
             print(f"Time, straggler={fit_res.metrics['is_straggler']}: {fit_res.metrics['time']}")
             weight = parameters_to_ndarrays(fit_res.parameters)
             if len(weight)>0: #Filter stragglers aided by followers

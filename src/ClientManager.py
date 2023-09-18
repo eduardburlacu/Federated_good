@@ -2,20 +2,21 @@ from typing import Dict, List, Optional, Tuple, Union
 from logging import INFO
 import random
 
-from flwr.common.typing import GetPropertiesIns
+from flwr.common.typing import GetPropertiesIns, GetPropertiesRes
 from flwr.common.logger import log
 from flwr.server.client_manager import SimpleClientManager
 from flwr.server.criterion import Criterion
 from flwr.server.client_proxy import ClientProxy
 
 from src import SEED
-from src.Clustering import Scheduler
+from src.Clustering import SchedulerPriority
 
 random.seed(SEED)
+
 class OffloadClientManager(SimpleClientManager):
-    def __init__(self, schedule:str="round_robin"):
+    def __init__(self, batch_size:Union[str,int,float]):
         super(OffloadClientManager, self).__init__()
-        self.scheduler = Scheduler(schedule=schedule)
+        self.scheduler = SchedulerPriority(int(batch_size))
         self.query = {"curr_round":1}
 
     def sample(
@@ -26,7 +27,8 @@ class OffloadClientManager(SimpleClientManager):
 
         with_followers:Optional[bool] = False,
         stragglers:Optional[Dict[str,int]]=None,
-        capacities:Optional[Dict[str,bool]]=None,
+        capacities:Optional[Dict[str,float]]=None,
+        datasizes: Optional[Dict[str,int]]=None,
         ports:Optional[Dict[str,int]]=None,
     ) -> Union[
         List[ClientProxy],
@@ -61,41 +63,32 @@ class OffloadClientManager(SimpleClientManager):
                 return [],[],{},{}
             else:
                 return []
+
         random.shuffle(available_cids)
         sampled_cids = available_cids[:num_clients]
         unsampled_cids = available_cids[num_clients:]
 
         if with_followers:  #Include followers
-            query = (stragglers is None) or (capacities is None) or (ports is None)
+            query = (stragglers is None) or (capacities is None)or (datasizes is None) or (ports is None)
             if query:
-                # Fully observable MDP
-                # otherwise POMDP -> exploit based on previous readings
-                # Reading current value requires much more computation and time
-                capacities = {}
-                stragglers = set()
-                res= [None]* len(self.clients)
-                for cid in available_cids:
-                    res[int(cid)] = self.clients[cid].get_properties(
-                        GetPropertiesIns(self.query), timeout= None
-                    ).properties
-                    if res[int(cid)]["straggler"] == 1:
-                        stragglers.add(cid)
-                    capacities[cid] = res[int(cid)]["capacity"]
-                del res
-                self.query["curr_round"] += 1
+                raise AttributeError("Client Manager did not get enoough args")
 
+            #Udate initial_capacities for 'round 0'
+            #if max(capacities.values())==0.:
+            #    for cid,client_proxy in self.clients.items():
+            #        res:GetPropertiesRes = client_proxy.get_properties(GetPropertiesIns({}),timeout=10)
+            #        capacities[cid] = res.properties["capacity"]
             jobs, mappings, selected_cids= self.scheduler.get_mappings(
                 selected_cids= sampled_cids,
                 unselected_cids= unsampled_cids,
                 capacity= capacities,
                 stragglers= stragglers,
-                priority_sort= True,
+                datasize=datasizes,
             )
-            if not query:
-                port_conf = {
-                    straggler: ports[follower]
-                    for straggler, follower in mappings.items()
-                }
+            port_conf = {
+                straggler: ports[follower]
+                for straggler, follower in mappings.items()
+            }
 
             return [self.clients[cid] for cid in selected_cids], selected_cids, jobs, port_conf
 

@@ -74,8 +74,13 @@ def main(cfg: DictConfig) -> float:
     # instantiate strategy
     # prepare function that will be used to spawn each client
     if cfg.offload:
+        #Request lengths of datasets
+        datasizes={}
+        for cid,trainl in enumerate(trainloaders):
+            datasizes[str(cid)]=len(trainl)
+
         # prepare function that will be used to spawn each client
-        client_fn, init_stragglers = client.gen_client_fn(
+        client_fn, init_stragglers, init_computation_fracs = client.gen_client_fn(
             num_clients=cfg.num_clients,
             num_rounds=cfg.num_rounds,
             num_epochs=cfg.num_epochs,
@@ -83,7 +88,6 @@ def main(cfg: DictConfig) -> float:
             valloaders=valloaders,
             learning_rate=cfg.learning_rate,
             stragglers_frac=cfg.stragglers_fraction,
-            capacities=init_capacities,
             model=cfg.model,
             ip_address=DEFAULT_SERVER_ADDRESS,
             ports=ports,
@@ -96,11 +100,12 @@ def main(cfg: DictConfig) -> float:
             evaluate_fn=evaluate_fn,
             on_fit_config_fn=fit_config_fn,
             init_stragglers=init_stragglers,
-            init_capacities=init_capacities,
+            init_computation_fracs=init_computation_fracs,
+            datasizes=datasizes,
             ports=ports,
         )
     else:
-        client_fn, init_stragglers = client.gen_client_fn(
+        client_fn, init_stragglers,computation_fracs = client.gen_client_fn(
             num_clients=cfg.num_clients,
             num_rounds=cfg.num_rounds,
             num_epochs=cfg.num_epochs,
@@ -108,7 +113,6 @@ def main(cfg: DictConfig) -> float:
             valloaders=valloaders,
             learning_rate=cfg.learning_rate,
             stragglers_frac=cfg.stragglers_fraction,
-            capacities=init_capacities,
             model=cfg.model,
         )
 

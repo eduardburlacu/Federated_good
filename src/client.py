@@ -1,7 +1,7 @@
 import time
 from collections import OrderedDict
 from typing import Callable, Dict, List, Tuple, Optional
-
+from math import ceil
 import flwr as fl
 import numpy as np
 import torch
@@ -29,7 +29,7 @@ class FlowerClient(
     fl.client.NumPyClient,
     Communicator
 ):  # pylint: disable=too-many-instance-attributes
-
+    beta:float = 0.85
     def __init__(
         self,
         cid:str,
@@ -41,7 +41,6 @@ class FlowerClient(
         learning_rate: float,
         straggler_schedule: np.ndarray,
         computation_frac: Optional[float],  # What fraction of the train load a device can solve
-        init_capacity: Optional[float],     # Capacity initializer
         ip_address:Optional[str],           # Communication address
         index:Optional[int],                # Communication host
 
@@ -74,12 +73,13 @@ class FlowerClient(
         self.straggler_schedule = straggler_schedule
         self.computation_frac = computation_frac
 
-        self.capacity = init_capacity
+        self.capacity = 0. #updated at the end of initilaizer
 
         self.time= 0.
 
         if index is None or ip_address is None:
             self.connection_failure = True
+            self.mbps=0.
         else:
             # In case the communication is unavailable,
             # we let the straggler train alone.
@@ -93,12 +93,13 @@ class FlowerClient(
 
             except:
                 self.connection_failure = True
-                #raise ConnectionError()
+                self.mbps=0.
+
+        self.update_capacity()
 
     def get_properties(self, config: Dict[str, Scalar]) -> Dict[str, Scalar]:
         #Update capacity
         properties = {
-            "port": self.index,
             "time": self.time,
             "capacity":self.capacity
         }
@@ -115,8 +116,8 @@ class FlowerClient(
         self.net.load_state_dict(state_dict, strict=True)
 
     def update_capacity(self):
-        self.capacity = self.mbps / self.computation_frac
-
+        target = self.mbps * ceil(len(self.trainloader)/self.trainloader.batch_size) / self.computation_frac
+        self.capacity = (1 - FlowerClient.beta) * self.capacity + FlowerClient.beta * target
     def split_train(
             self,
             split_layer:int,
@@ -277,7 +278,7 @@ class FlowerClient(
         self, parameters: NDArrays, config: Dict[str, Scalar]
     ) -> Tuple[NDArrays, int, Dict]:
         """Implements distributed fit function for a given client."""
-
+        self.update_capacity()
         self.set_parameters(parameters)
         if (
             self.straggler_schedule[int(config["curr_round"]) - 1]
@@ -296,7 +297,8 @@ class FlowerClient(
                          }
                     )
 
-        else: self.computation_frac = 1.0
+        else:
+            self.computation_frac = 1.0
 
         if "follower" in config:
             # Wait for connection to straggler(s)
@@ -339,11 +341,11 @@ class FlowerClient(
 
             else:  # Offload a part of the training
                 # Wait for connection
-                if not self.connected:
-                    self.connect(
-                        other_addr=self.ip,
-                        other_port=config["port"]
-                    )
+                
+                self.connect(
+                    other_addr=self.ip,
+                    other_port=config["port"]
+                )
                 if len(list(self.net.children())) != len(parameters):
                     self.net = instantiate(self.model).to(self.device)
 
@@ -381,12 +383,12 @@ def gen_client_fn(
     valloaders: List[DataLoader],
     learning_rate: float,
     stragglers_frac: float,
-    capacities:Optional[Dict[str,float]],
     model: DictConfig,
     ip_address:Optional[str]=None,
     ports:Optional[Dict[str,int]]=None,
 ) -> Tuple[
      Callable[[str], FlowerClient],
+    Dict[str, bool],
     Dict[str, bool]
 ]:  # pylint: disable=too-many-arguments
     """Generates the client function that creates the Flower Clients.
@@ -454,12 +456,11 @@ def gen_client_fn(
             learning_rate=learning_rate,
             straggler_schedule=stragglers_mat[int(cid)],
             computation_frac=computation_fracs[cid],
-            init_capacity=capacities[cid],
             ip_address=ip_address,
             index= index
         )
 
-    return client_fn, init_stragglers
+    return client_fn, init_stragglers,computation_fracs
 
 class FedFlowerClient(
     FlowerClient

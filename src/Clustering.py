@@ -1,60 +1,159 @@
-from typing import List, Tuple, Dict
+import random
+from typing import List, Tuple, Dict, Optional
+from math import ceil
 
-class ClusteringModule:
+
+class PriorityQueue:
     def __init__(self,
-                 flops: List[int],
-                 r_low:float,
-                 r_high:float,
+                 batch_size:int,
+                 straggler_cids:Optional[List[str]]= None,
+                 unselected_cids: Optional[List[str]]= None,
+                 capacity:Dict[str,float]= None,
+                 datasize:Dict[str,int]= None,
                  ):
+        self.batch_size = batch_size
+        self.straggler_queue = []
+        self.follower_queue = []
 
-        self.flops_all = flops
-        self.client_number_all = len(flops)
-        self.r_low = r_low
-        self.r_high = r_high
+        if straggler_cids and unselected_cids and capacity and datasize:
+            self.capacity = capacity.copy()
+            self.datasize = datasize.copy()
+            self.straggler_queue  = sorted(straggler_cids, key=lambda x: capacity[x], reverse=True)  #highest capacity to be solved first
+            self.follower_queue = sorted(unselected_cids,key=lambda x: capacity[x]/datasize[x], reverse=True) # sort as if the dataset has size 1 initially
+            for cid in unselected_cids:
+                self.datasize[cid]= 0
+        else:
+            raise AttributeError("Scheduler not given all parameters.")
 
-        self.flops = []
-        self.client_number = 0
-        self.tier_high_cid= []
-        self.tier_mid_cid = []
-        self.tier_low_cid = []
+    def __len__(self)->int:
+        return len(self.straggler_queue)
 
+    def __repr__(self):
+        return f"Stragglers:{repr(self.straggler_queue)} \n Unselected: {repr(self.follower_queue)}"
 
-    def update(self, available_cids:List[str]):
-        self.flops = [self.flops_all[int(cid)] for cid in available_cids]
-        self.client_number = len(self.flops)
+    def peek(self, straggler=True)-> Tuple[str,float]:
+        "Show the top priority straggler(if True) or follower(if False)"
+        if straggler:
+            return self.straggler_queue[0], self.capacity[self.straggler_queue[0]]
+        else:
+            return self.follower_queue[0], self.capacity[self.follower_queue[0]]
+    def dequeue(self)-> Tuple[str,str]:
+        "Get the highest priority mapping"
+        if len(self.straggler_queue)>0:
+            straggler = self.straggler_queue.pop(0)
+        else: straggler=""
 
-    def get_tiers(self, importance_sort:bool =True):
-        x = sorted(self.flops)
-        th_high = x[int(self.r_high * self.client_number)]
-        th_low  = x[int(self.r_low  * self.client_number)]
-        print(f"th_high:{th_high} and th_low:{th_low}")
+        if len(self.follower_queue)>0:
+            follower = self.follower_queue.pop(0)
+        else: follower=""
 
-        for idx, flop in enumerate(self.flops):
-            if flop>= th_high:
-                self.tier_high_cid.append((idx,flop))
-            elif flop >= th_low:
-                self.tier_mid_cid.append((idx,flop))
-            else:
-                self.tier_low_cid.append((idx,flop))
-        if importance_sort:
-            self._importance_sort()
+        return straggler,follower
 
-    def _importance_sort(self):
-        self.tier_high_cid.sort(key= lambda x:x[1], reverse=True)
-        self.tier_low_cid.sort(key=lambda x: x[1], reverse=False)
+    def enqueue(self, follower:str, added_len_dataset:int):
+        #update the capacity
+        self.capacity[follower] *= (ceil( added_len_dataset + self.datasize[follower]/self.batch_size)/ max(1,ceil(self.datasize[follower]/self.batch_size)))
+        #update the total datasize
+        self.datasize[follower] += added_len_dataset
 
-    def print(self):
-        print("Tier high queue-->",self.tier_high_cid)
-        print("Tier mid queue-->" ,self.tier_mid_cid)
-        print("Tier low queue-->" ,self.tier_low_cid)
+        if len(self.straggler_queue)>0:
+            tmp = 0
+            while self.datasize[self.follower_queue[tmp]]< self.datasize[follower]:
+                tmp+=1
+                if tmp==len(self.follower_queue):
+                    break
+        else: tmp=1
 
-    def straggler_cids(self):pass
+        self.follower_queue.insert(tmp-1, follower)
 
+    def schedule(self):
+        jobs={}
+        mappings={}
+        while len(self.straggler_queue)>0: # stop when all stragglers are assigned an offloading behaviour
+            straggler, follower = self.dequeue()
+            if straggler=="": break
+            #check if it is better to leave the computation there
+            if self.capacity[straggler]>=self.capacity[follower]:
+                if follower in jobs:
+                    jobs[follower] +=1
+                else:
+                    jobs[follower] =1
+                mappings[straggler]=follower
+                added_len = self.datasize[straggler]
+            else: added_len= 0
 
-class Scheduler:
-    def __init__(self, schedule:str='round_robin',):
+            self.enqueue(
+                follower=follower,
+                added_len_dataset=added_len,
+            )
+        return jobs, mappings
 
-        self.schedule = schedule
+class SchedulerPriority:
+    def __init__(self, batch_size:int,):
+        self.batch_size = batch_size
+
+    def _cluster(self,
+                 selected_cids:List[str],
+                 unselected_cids:List[str],
+                 stragglers:Dict[str, int],
+                 ):
+        # Cluster Devices
+        self.selected_stragglers=[]
+        self.unselected_cids=[]
+        self.selected_stragglers=[cid for cid in selected_cids if stragglers[cid]==1]
+        self.unselected_cids = [
+            cid for cid in unselected_cids
+            if stragglers[cid]==0
+        ]   #filter out the stragglers not selected this round
+
+    def get_mappings(self,
+                     selected_cids:List[str],
+                     unselected_cids:List[str],
+                     capacity:Dict[str, float],
+                     stragglers:Dict[str, int],
+                     datasize:Dict[str,int],
+                     ) -> Tuple[
+        Dict[str, int],
+        Dict[str,str],
+        List[str]
+    ]:
+        '''
+        :param selected_cids: List containing all the cids
+         selected for the current round.
+        :param unselected_cids: List containing all the cids
+         not selected for the current round.
+        :param capacity: Dictionary cid --> capacity[cid]
+         showing the performance of the client, which can change
+         over training.
+        :param stragglers: Set containing  all stragglers in
+         the selected round by the respective client manager.
+        :return: Tuple of 3 components:
+                    -- jobs - Dictionary for followers allocated as
+                    cid--> count of stragglers assigned to that.
+                    -- mappings - Dictionary mapping straggler cid -->
+                    follower cid
+                    -- clients -  A list of cids containg all the participants
+                    to FL round, i.e. basic clients, stragglers, and followers
+        '''
+
+        self._cluster(
+            selected_cids=selected_cids,
+            unselected_cids=unselected_cids,
+            stragglers=stragglers,
+        )
+        queue = PriorityQueue(
+            batch_size=self.batch_size,
+            straggler_cids=self.selected_stragglers,
+            unselected_cids=self.unselected_cids,
+            capacity=capacity,
+            datasize=datasize
+        )
+        jobs, mappings = queue.schedule()
+        clients = [*jobs.keys(), *selected_cids]
+
+        return jobs, mappings, clients
+
+class SchedulerRoundRobin:
+    def __init__(self):
         self.selected_cids = []
         self.unselected_cids = []
         self.capacity = []
@@ -75,7 +174,6 @@ class Scheduler:
                      unselected_cids:List[str],
                      capacity:Dict[str, float],
                      stragglers:Dict[str, int],
-                     priority_sort=True
                      ) -> Tuple[
         Dict[str, int],
         Dict[str,str],
@@ -91,8 +189,6 @@ class Scheduler:
          over training.
         :param stragglers: Set containing  all stragglers in
          the selected round by the respective client manager.
-        :param priority_sort:   Prioritise stragglers with low capacity
-         and suggest first unselected devices with superior capacity
         :return: Tuple of 3 components:
                     -- jobs - Dictionary for followers allocated as
                     cid--> count of stragglers assigned to that.
@@ -108,24 +204,73 @@ class Scheduler:
             capacity=capacity,
             stragglers=stragglers,
         )
-        if priority_sort:
-            self.selected_cids.sort(key= lambda x: capacity[x], reverse = True)
-            self.unselected_cids.sort(key= lambda x: capacity[x], reverse = True)
+
+        self.selected_cids.sort(key= lambda x: capacity[x], reverse = True)
+        self.unselected_cids.sort(key= lambda x: capacity[x], reverse = True)
         jobs={}
         mappings={}
         clients= self.selected_cids
-        if self.schedule == "round_robin":
-            lim = len(self.unselected_cids)
-            if lim > 0:
-                for idx, cid in enumerate(self.selected_cids):
-                    if stragglers[cid]==1:
-                        mappings[cid] = self.unselected_cids[ idx%lim ]
-                        if self.unselected_cids[idx%lim] not in jobs:
-                            jobs[self.unselected_cids[idx % lim]] = 1
-                        else:
-                            jobs[self.unselected_cids[idx % lim]]+=1
+        lim = len(self.unselected_cids)
+        if lim > 0:
+            for idx, cid in enumerate(self.selected_cids):
+                if stragglers[cid]==1:
+                    mappings[cid] = self.unselected_cids[ idx%lim ]
+                    if self.unselected_cids[idx%lim] not in jobs:
+                        jobs[self.unselected_cids[idx % lim]] = 1
+                    else:
+                        jobs[self.unselected_cids[idx % lim]]+=1
 
-                clients=[ *jobs.keys(), *self.selected_cids]
+            clients=[ *jobs.keys(), *self.selected_cids]
 
         return jobs, mappings, clients
 
+if __name__=="__main__":
+
+    from straggler_schedule import get_straggler_schedule
+    stragglers_mat, computation_fracs = get_straggler_schedule(
+        num_clients=1000,
+        num_rounds=20,
+        stragglers_frac=0.8,
+        type="constant",
+    )
+    init_stragglers = {str(cid): bool(stragglers_mat[cid, 0]) for cid in range(1000)}
+    clients = [str(n) for n in range(1000)]
+    datasize = {cid: random.randint(10, 1000) for cid in clients}
+    capacity={cid: float(cid) for cid in clients}
+    scheduler = SchedulerPriority(10)
+    shit_scheduler = SchedulerRoundRobin()
+    jobs,mappings,clients=scheduler.get_mappings(
+        selected_cids=clients[:700],
+        unselected_cids=clients[700:],
+        capacity=capacity,
+        stragglers=init_stragglers,
+        datasize=datasize
+    )
+    shit_jobs,shit_mappings,shit_clients=shit_scheduler.get_mappings(
+        selected_cids=clients[:700],
+        unselected_cids=clients[700:],
+        capacity=capacity,
+        stragglers=init_stragglers,
+    )
+    print(f"SELECTED CLIENTS ARE{clients} AND \n JOBS ARE: {jobs} AND \n MAPPINGS ARE {mappings}")
+    print(f"SELECTED CLIENTS ARE{shit_clients} AND \n JOBS ARE: {shit_jobs} AND \n MAPPINGS ARE {shit_mappings}")
+
+# lim = len(self.unselected_cids)
+# follower_idx = 0
+# for selected_idx,cid in enumerate(self.selected_cids):
+#    if stragglers[cid]==1:
+#        if follower_idx<lim:
+#            mappings[cid]
+
+# if lim > 0:
+#    for idx, cid in enumerate(self.selected_cids):
+#        if stragglers[cid]==1:
+
+
+#            mappings[cid] = self.unselected_cids[ idx%lim ]
+#            if self.unselected_cids[idx%lim] not in jobs:
+#                jobs[self.unselected_cids[idx % lim]] = 1
+#            else:
+#                jobs[self.unselected_cids[idx % lim]]+=1
+#
+#    clients=[ *jobs.keys(), *self.selected_cids]

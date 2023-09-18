@@ -38,7 +38,7 @@ model:
 
 client_manager:
   _target_: src.ClientManager.OffloadClientManager
-  schedule: round_robin
+  batch_size: ${batch_size}
 
 fit_config:
   drop_client: false # with FedProx, clients shouldn't be dropped even if they are stragglers
@@ -59,3 +59,4 @@ strategy:
   agent:
     _target_: src.Agent.basic.BasicAgent
     n1: 0
+  batch_size: ${batch_size}
