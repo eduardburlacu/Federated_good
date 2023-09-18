@@ -144,6 +144,8 @@ def main(cfg: DictConfig) -> float:
         TOTAL_TRAIN_TIME += strategy.extra_resuts["train_time"][step][1]
         AVG_STRAGGLERS_DROP += strategy.extra_resuts["frac_failures"][step][1]
     AVG_STRAGGLERS_DROP /= cfg.num_rounds
+    strategy.extra_resuts["TOTAL_TRAIN_TIME"] = TOTAL_TRAIN_TIME
+    strategy.extra_resuts["AVG_STRAGGLERS_DROP"] = AVG_STRAGGLERS_DROP
     # Experiment completed. Now we save the results and
     # generate plots using the `history`
     print("................")
