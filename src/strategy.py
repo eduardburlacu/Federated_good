@@ -137,7 +137,6 @@ class FedProxOffload(FedAvg):
         sample_size, min_num_clients = self.num_fit_clients(
             client_manager.num_available()
         )
-
         clients, clients_cid, jobs, ports = client_manager.sample(
             num_clients= sample_size,
             min_num_clients= min_num_clients,

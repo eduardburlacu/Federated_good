@@ -14,8 +14,8 @@ class PriorityQueue:
         self.batch_size = batch_size
         self.straggler_queue = []
         self.follower_queue = []
-
-        if straggler_cids and unselected_cids and capacity and datasize:
+        print(f"BATCH_sIZE:{batch_size}\n STRAGGLER_CIDS{straggler_cids}\n unselected_cids {unselected_cids}\n capacity {capacity}\n datasize {datasize}")
+        if capacity and datasize:
             self.capacity = capacity.copy()
             self.datasize = datasize.copy()
             self.straggler_queue  = sorted(straggler_cids, key=lambda x: capacity[x], reverse=True)  #highest capacity to be solved first
