@@ -14,7 +14,6 @@ class PriorityQueue:
         self.batch_size = batch_size
         self.straggler_queue = []
         self.follower_queue = []
-        print(f"BATCH_sIZE:{batch_size}\n STRAGGLER_CIDS{straggler_cids}\n unselected_cids {unselected_cids}\n capacity {capacity}\n datasize {datasize}")
         if capacity and datasize:
             self.capacity = capacity.copy()
             self.datasize = datasize.copy()
