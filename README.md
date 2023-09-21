@@ -189,7 +189,7 @@ bash src/script/run.sh --config-name fedavg --multirun stragglers_fraction=0.0,0
 
 The above commands would generate results that you can plot and would look like:
 
-![results produced by the default configuration](outputs_paper/13-50-03/centralized_metrics_FedProxOffload_powerlaw_C=1000_B=10_E=10_R=100_mu=2.0_strag=0.5.png)
+![results produced by the default configuration](outputs_paper/loss+acc_mu_2.png)
 
 #### Experiment 2
 ```bash
