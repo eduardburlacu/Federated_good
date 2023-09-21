@@ -177,14 +177,23 @@ bash src/script/run.sh --config-name fedavg
 With the following command we run **FedProx** and **FedAvg** configurations with/without **SFD** while iterating through different values of `mu` and `stragglers_fraction`. We ran each experiment five times (this is achieved by artificially adding an extra element to the config but that it doesn't have an impact on the FL setting `'+repeat_num=range(5)'`)
 
 ```bash
-bash src/script/run.sh --multirun mu=0.0,2.0 stragglers_fraction=0.0,0.5,0.9 '+repeat_num=range(5)'
+bash src/script/run.sh --config_name fedoffload_mnist --multirun mu=0.0,1.0,2.0 stragglers_fraction=0.0,0.5,0.7,0.9
 ```
 ```bash
-bash src/script/run.sh --config-name fedprox --multirun mu=0.0,2.0 stragglers_fraction=0.0,0.5,0.9 '+repeat_num=range(5)'
+bash src/script/run.sh --config-name fedprox_mnist --multirun mu=0.0,1.0,2.0 stragglers_fraction=0.0,0.5,0.7,0.9
 ```
 ```bash
 # note that for FedAvg we don't want to change the proximal term mu since it should be kept at 0.0
-bash src/script/run.sh --config-name fedavg --multirun stragglers_fraction=0.0,0.5,0.9 '+repeat_num=range(5)'
+bash src/script/run.sh --config-name fedavg_mnist --multirun stragglers_fraction=0.0,0.5,0.9
+```
+```bash
+bash src/script/run.sh --config-name fedoffload_cifar10 --multirun mu=0.0,1.0,2.0 stragglers_fraction=0.0,0.5,0.7,0.9
+```
+```bash
+bash src/script/run.sh --config-name fedprox_cifar10 --multirun mu=0.0,1.0,2.0 stragglers_fraction=0.0,0.5,0.7,0.9
+```
+```bash
+bash src/script/run.sh --config-name fedprox_cifar10 --multirun mu=0.0,1.0,2.0 stragglers_fraction=0.0,0.5,0.7,0.9
 ```
 
 The above commands would generate results that you can plot and would look like:
