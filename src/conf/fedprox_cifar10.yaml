@@ -31,8 +31,7 @@ model:
   _target_: src.models.CNN_CIFAR
 
 client_manager:
-  _target_: src.ClientManager.OffloadClientManager
-  batch_size: ${batch_size}
+  _target_: flwr.server.client_manager.SimpleClientManager
 
 fit_config:
   drop_client: false # with FedProx, clients shouldn't be dropped even if they are stragglers
