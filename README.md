@@ -45,6 +45,8 @@ poetry shell
 
 # install PyTorch with GPU support. Please note this baseline is very lightweight so it can run fine on a CPU.
 pip install torch==1.13.1+cu116 torchvision==0.14.1+cu116 torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cu116
+#install TorchRL for training the agent.
+pip install git+https://github.com/pytorch/rl@v0.1.0
 ```
 
 ## Experiments
