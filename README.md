@@ -185,8 +185,8 @@ bash src/script/run.sh --config-name fedprox_mnist --multirun mu=0.0,1.0,2.0 str
 
 
 ```bash
-bash src/script/run.sh --config-name fedoffload_cifar10 --multirun mu=0.0 stragglers_fraction=0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9
-bash src/script/run.sh --config-name fedprox_cifar10 --multirun mu=0.0 stragglers_fraction=0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9
+bash src/script/run.sh --config-name fedoffload_cifar10 --multirun clients_per_round=6 mu=0.0 stragglers_fraction=0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9
+bash src/script/run.sh --config-name fedprox_cifar10 --multirun clients_per_round=6 mu=0.0 stragglers_fraction=0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9
 ```
 
 The above commands would generate results that you can plot and would look like:

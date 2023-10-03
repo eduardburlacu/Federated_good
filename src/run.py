@@ -141,8 +141,11 @@ def main(cfg: DictConfig) -> float:
     TOTAL_TRAIN_TIME = 0.
     AVG_STRAGGLERS_DROP = 0.
     for step in range(cfg.num_rounds):
-        TOTAL_TRAIN_TIME += strategy.extra_resuts["train_time"][step][1]
-        AVG_STRAGGLERS_DROP += strategy.extra_resuts["frac_failures"][step][1]
+        try:
+            TOTAL_TRAIN_TIME += strategy.extra_resuts["train_time"][step][1]
+            AVG_STRAGGLERS_DROP += strategy.extra_resuts["frac_failures"][step][1]
+        except:
+            continue
     AVG_STRAGGLERS_DROP /= cfg.num_rounds
     strategy.extra_resuts["TOTAL_TRAIN_TIME"] = TOTAL_TRAIN_TIME
     strategy.extra_resuts["AVG_STRAGGLERS_DROP"] = AVG_STRAGGLERS_DROP
